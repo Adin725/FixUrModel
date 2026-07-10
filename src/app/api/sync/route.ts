@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       if (body[key] !== undefined) {
         let val = body[key];
         if (key === "imageMap" && typeof val === "object" && val !== null && !body.reset) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const existingRow = await (prisma as any).globalState.findUnique({
             where: { key: "imageMap" },
           });
