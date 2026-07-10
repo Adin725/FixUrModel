@@ -161,22 +161,25 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       .then((data) => {
         if (data && data.success && data.state) {
           const { state } = data;
-          if (Array.isArray(state.submissions) && state.submissions.length > 0) {
+          if (Array.isArray(state.users)) {
+            setUsers(state.users);
+          }
+          if (Array.isArray(state.submissions)) {
             setSubmissions(state.submissions);
           }
-          if (Array.isArray(state.dataset) && state.dataset.length > 0) {
+          if (Array.isArray(state.dataset)) {
             setDataset(state.dataset);
           }
           if (typeof state.activeGtVersion === "string") {
             setActiveGtVersion(state.activeGtVersion);
           }
-          if (Array.isArray(state.gtHistory) && state.gtHistory.length > 0) {
+          if (Array.isArray(state.gtHistory)) {
             setGtHistory(state.gtHistory);
           }
-          if (Array.isArray(state.activityLogs) && state.activityLogs.length > 0) {
+          if (Array.isArray(state.activityLogs)) {
             setActivityLogs(state.activityLogs);
           }
-          if (state.imageMap && typeof state.imageMap === "object" && Object.keys(state.imageMap).length > 0) {
+          if (state.imageMap && typeof state.imageMap === "object") {
             const mapObj = state.imageMap as Record<number, string>;
             setImageMap(mapObj);
             saveImageMapToIndexedDB(mapObj);
@@ -211,6 +214,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          users,
           submissions,
           dataset,
           activeGtVersion,
@@ -619,45 +623,74 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const resetToDefaultSeeds = useCallback(() => {
     const demoDataset = generateDemoDataset(120);
+    const logs = [
+      {
+        id: "log-reset",
+        timestampWIB: getFormattedWIB().full,
+        title: "Dataset Contoh Dimuat",
+        description: "120 sampel contoh telah dimuat ke dalam platform.",
+        type: "system" as const,
+      },
+    ];
     setUsers(DEFAULT_USERS);
     setCurrentUser(DEFAULT_USERS[0]);
     setDataset(demoDataset);
     setActiveGtVersion("v1.0");
     setSubmissions([]);
     setGtHistory([]);
-    setActivityLogs([
-      {
-        id: "log-reset",
-        timestampWIB: getFormattedWIB().full,
-        title: "Dataset Contoh Dimuat",
-        description: "120 sampel contoh telah dimuat ke dalam platform.",
-        type: "system",
-      },
-    ]);
+    setActivityLogs(logs);
     clearImageMapIndexedDB();
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        users: DEFAULT_USERS,
+        submissions: [],
+        dataset: demoDataset,
+        activeGtVersion: "v1.0",
+        gtHistory: [],
+        activityLogs: logs,
+        imageMap: {},
+      }),
+    }).catch(() => {});
   }, []);
 
   const resetAllProcessToZero = useCallback(() => {
-    setSubmissions([]);
-    setDataset([]);
-    setImageMap({});
-    setActiveGtVersion("v1.0");
-    setGtHistory([]);
-    setActivityLogs([
+    const logs = [
       {
         id: `log-reset-zero-${Date.now()}`,
         timestampWIB: getFormattedWIB().full,
         title: "Reset Seluruh Data ke 0",
         description: "Seluruh data submission, ground truth manual, dan gambar telah direset ke 0.",
-        type: "system",
+        type: "system" as const,
       },
-    ]);
+    ];
+    setSubmissions([]);
+    setDataset([]);
+    setImageMap({});
+    setActiveGtVersion("v1.0");
+    setGtHistory([]);
+    setActivityLogs(logs);
     clearImageMapIndexedDB();
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
     } catch {
       // ignore
     }
+
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        submissions: [],
+        dataset: [],
+        activeGtVersion: "v1.0",
+        gtHistory: [],
+        activityLogs: logs,
+        imageMap: {},
+      }),
+    }).catch(() => {});
   }, []);
 
   return (
