@@ -188,7 +188,7 @@ export default function GroundTruthHistoryPage() {
                 <strong style={{ color: "#0f1b35" }}>Waktu:</strong> {selectedImpactRec.dateWIB} ({selectedImpactRec.timeWIB}) — Oleh: <strong style={{ color: "#0f1b35" }}>{selectedImpactRec.changedByLeaderboardName}</strong>
                 <br />
                 <span style={{ fontStyle: "italic", marginTop: "4px", display: "block" }}>
-                  "{selectedImpactRec.reason}"
+                  &quot;{selectedImpactRec.reason}&quot;
                 </span>
               </div>
 
