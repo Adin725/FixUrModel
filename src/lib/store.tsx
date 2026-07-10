@@ -133,7 +133,60 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [isCloudReady, setIsCloudReady] = useState(false);
 
-  const isRemoteUpdateRef = useRef(false);
+  // Timestamp terakhir kali device ini menulis ke cloud.
+  // Selama cooldown aktif, SEMUA pembacaan dari cloud DIBLOKIR
+  // agar data lokal yang baru saja ditulis tidak tertimpa oleh data lama.
+  const lastWriteTimestampRef = useRef(0);
+  const WRITE_COOLDOWN_MS = 10000; // 10 detik cooldown setelah menulis
+
+  const applyCloudState = useCallback((state: Record<string, unknown>) => {
+    if (Array.isArray(state.users)) {
+      setUsers(state.users as UserProfile[]);
+    }
+    if (Array.isArray(state.submissions)) {
+      setSubmissions(state.submissions as Submission[]);
+    }
+    if (Array.isArray(state.dataset)) {
+      setDataset(state.dataset as DatasetItem[]);
+    }
+    if (typeof state.activeGtVersion === "string") {
+      setActiveGtVersion(state.activeGtVersion);
+    }
+    if (Array.isArray(state.gtHistory)) {
+      setGtHistory(state.gtHistory as GroundTruthHistory[]);
+    }
+    if (Array.isArray(state.activityLogs)) {
+      setActivityLogs(state.activityLogs as ActivityLog[]);
+    }
+    if (state.imageMap && typeof state.imageMap === "object") {
+      const mapObj = state.imageMap as Record<number, string>;
+      setImageMap(mapObj);
+      saveImageMapToIndexedDB(mapObj);
+    }
+  }, []);
+
+  const syncFromCloud = useCallback(() => {
+    // BLOKIR pembacaan cloud jika baru saja menulis (cooldown aktif)
+    const elapsed = Date.now() - lastWriteTimestampRef.current;
+    if (elapsed < WRITE_COOLDOWN_MS) {
+      return;
+    }
+
+    fetch("/api/sync")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && data.state) {
+          // Cek ulang cooldown setelah fetch selesai (mungkin user menulis saat fetch berlangsung)
+          const elapsedAfterFetch = Date.now() - lastWriteTimestampRef.current;
+          if (elapsedAfterFetch < WRITE_COOLDOWN_MS) {
+            return;
+          }
+          applyCloudState(data.state);
+        }
+      })
+      .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
+      .finally(() => setIsCloudReady(true));
+  }, [applyCloudState]);
 
   useEffect(() => {
     try {
@@ -158,59 +211,28 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     });
 
-    // Fungsi untuk menarik data terbaru dari PostgreSQL Cloud
-    const syncFromCloud = () => {
-      fetch("/api/sync")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.success && data.state) {
-            const { state } = data;
-            isRemoteUpdateRef.current = true;
-            if (Array.isArray(state.users)) {
-              setUsers(state.users);
-            }
-            if (Array.isArray(state.submissions)) {
-              setSubmissions(state.submissions);
-            }
-            if (Array.isArray(state.dataset)) {
-              setDataset(state.dataset);
-            }
-            if (typeof state.activeGtVersion === "string") {
-              setActiveGtVersion(state.activeGtVersion);
-            }
-            if (Array.isArray(state.gtHistory)) {
-              setGtHistory(state.gtHistory);
-            }
-            if (Array.isArray(state.activityLogs)) {
-              setActivityLogs(state.activityLogs);
-            }
-            if (state.imageMap && typeof state.imageMap === "object") {
-              const mapObj = state.imageMap as Record<number, string>;
-              setImageMap(mapObj);
-              saveImageMapToIndexedDB(mapObj);
-            }
-          }
-        })
-        .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
-        .finally(() => setIsCloudReady(true));
-    };
-
     // Sinkronisasi pertama saat aplikasi dibuka
     syncFromCloud();
 
-    // Polling real-time otomatis setiap 4 detik agar semua device selalu sinkron
-    const intervalId = setInterval(syncFromCloud, 4000);
-
-    // Sinkronisasi instan saat user berpindah tab atau mengetuk layar
+    // Sinkronisasi saat user kembali ke tab/window ini (bukan polling agresif)
     window.addEventListener("focus", syncFromCloud);
+    // Juga sync saat visibilitas berubah (user buka tab lain lalu kembali)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        syncFromCloud();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      clearInterval(intervalId);
       window.removeEventListener("focus", syncFromCloud);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [syncFromCloud]);
 
   const pushStateToCloud = useCallback((payload: Record<string, unknown>) => {
+    // Aktifkan cooldown: blokir semua pembacaan cloud selama 10 detik
+    lastWriteTimestampRef.current = Date.now();
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -649,6 +671,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const resetToDefaultSeeds = useCallback(() => {
+    lastWriteTimestampRef.current = Date.now();
     const demoDataset = generateDemoDataset(120);
     const logs = [
       {
@@ -666,6 +689,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmissions([]);
     setGtHistory([]);
     setActivityLogs(logs);
+    setImageMap({});
     clearImageMapIndexedDB();
 
     fetch("/api/sync", {
@@ -679,11 +703,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         gtHistory: [],
         activityLogs: logs,
         imageMap: {},
+        reset: true,
       }),
     }).catch(() => {});
   }, []);
 
   const resetAllProcessToZero = useCallback(() => {
+    lastWriteTimestampRef.current = Date.now();
     const logs = [
       {
         id: `log-reset-zero-${Date.now()}`,
@@ -716,6 +742,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         gtHistory: [],
         activityLogs: logs,
         imageMap: {},
+        reset: true,
       }),
     }).catch(() => {});
   }, []);
