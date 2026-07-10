@@ -130,6 +130,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     null
   );
 
+  const [isCloudReady, setIsCloudReady] = useState(false);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -152,6 +154,32 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         setImageMap(savedMap);
       }
     });
+
+    // Sinkronisasi otomatis dari database cloud PostgreSQL
+    fetch("/api/sync")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && data.state) {
+          const { state } = data;
+          if (Array.isArray(state.submissions) && state.submissions.length > 0) {
+            setSubmissions(state.submissions);
+          }
+          if (Array.isArray(state.dataset) && state.dataset.length > 0) {
+            setDataset(state.dataset);
+          }
+          if (typeof state.activeGtVersion === "string") {
+            setActiveGtVersion(state.activeGtVersion);
+          }
+          if (Array.isArray(state.gtHistory) && state.gtHistory.length > 0) {
+            setGtHistory(state.gtHistory);
+          }
+          if (Array.isArray(state.activityLogs) && state.activityLogs.length > 0) {
+            setActivityLogs(state.activityLogs);
+          }
+        }
+      })
+      .catch((err) => console.error("Gagal sinkronisasi awal dari cloud:", err))
+      .finally(() => setIsCloudReady(true));
   }, []);
 
   useEffect(() => {
@@ -171,6 +199,21 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch {
       // Abaikan kesalahan penulisan penyimpanan lokal
     }
+
+    // Kirim pembaruan ke database cloud PostgreSQL secara real-time
+    if (isCloudReady) {
+      fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submissions,
+          dataset,
+          activeGtVersion,
+          gtHistory,
+          activityLogs,
+        }),
+      }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
+    }
   }, [
     users,
     currentUser,
@@ -179,6 +222,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     submissions,
     gtHistory,
     activityLogs,
+    isCloudReady,
   ]);
 
   const login = useCallback(

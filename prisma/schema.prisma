@@ -49,3 +49,9 @@ model GroundTruthHistory {
   changedCount             Int
   reason                   String
 }
+
+model GlobalState {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
