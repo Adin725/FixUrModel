@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import JSZip from "jszip";
 import {
@@ -132,6 +133,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [isCloudReady, setIsCloudReady] = useState(false);
 
+  const isRemoteUpdateRef = useRef(false);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -162,6 +165,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         .then((data) => {
           if (data && data.success && data.state) {
             const { state } = data;
+            isRemoteUpdateRef.current = true;
             if (Array.isArray(state.users)) {
               setUsers(state.users);
             }
@@ -222,6 +226,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     } catch {
       // Abaikan kesalahan penulisan penyimpanan lokal
+    }
+
+    // Hindari echo loop: jika perubahan berasal dari penarikan cloud, JANGAN kirim POST balik yang menimpa cloud!
+    if (isRemoteUpdateRef.current) {
+      isRemoteUpdateRef.current = false;
+      return;
     }
 
     // Kirim pembaruan ke database cloud PostgreSQL secara real-time
