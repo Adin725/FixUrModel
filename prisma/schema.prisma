@@ -1,0 +1,51 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model UserAccount {
+  id              String       @id @default(uuid())
+  fullName        String
+  leaderboardName String       @unique
+  email           String       @unique
+  passwordHash    String
+  createdAt       DateTime     @default(now())
+  submissions     Submission[]
+}
+
+model DatasetItem {
+  id               Int      @id
+  imageNumber      Int
+  groundTruthLabel String
+  updatedAt        DateTime @updatedAt
+}
+
+model Submission {
+  id                  String   @id @default(uuid())
+  rank                Int
+  name                String   @unique
+  leaderboardName     String
+  modelName           String
+  validationMacroF1   Float
+  testMacroF1         Float
+  generalizationGap   Float
+  uploadTimestampWIB  String
+  strategyDescription String
+  predictionsJson     String
+  evaluationJson      String
+  userAccount         UserAccount? @relation(fields: [leaderboardName], references: [leaderboardName])
+}
+
+model GroundTruthHistory {
+  id                       String   @id @default(uuid())
+  version                  String
+  dateWIB                  String
+  timeWIB                  String
+  changedByLeaderboardName String
+  changedCount             Int
+  reason                   String
+}
