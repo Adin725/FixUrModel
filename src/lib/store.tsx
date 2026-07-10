@@ -159,9 +159,19 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       setActivityLogs(state.activityLogs as ActivityLog[]);
     }
     if (state.imageMap && typeof state.imageMap === "object") {
-      const mapObj = state.imageMap as Record<number, string>;
-      setImageMap(mapObj);
-      saveImageMapToIndexedDB(mapObj);
+      // JSON dari cloud mengembalikan key sebagai string ("1", "23"),
+      // tapi komponen preview menggunakan number (1, 23).
+      // Normalisasi semua key menjadi number agar lookup imageMap[id] berhasil.
+      const rawMap = state.imageMap as Record<string, string>;
+      const normalizedMap: Record<number, string> = {};
+      for (const [k, v] of Object.entries(rawMap)) {
+        const numKey = Number(k);
+        if (!isNaN(numKey) && typeof v === "string") {
+          normalizedMap[numKey] = v;
+        }
+      }
+      setImageMap(normalizedMap);
+      saveImageMapToIndexedDB(normalizedMap);
     }
   }, []);
 
@@ -402,13 +412,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           rank: idx + 1,
         }));
         const tagsMap = computeAutomaticTags(ranked);
-        return ranked.map((s) => ({
+        const nextSubs = ranked.map((s) => ({
           ...s,
           tags: tagsMap[s.id] || [],
         }));
+        pushStateToCloud({ submissions: nextSubs });
+        return nextSubs;
       });
     },
-    []
+    [pushStateToCloud]
   );
 
   const updateGroundTruthDataset = useCallback(
@@ -478,37 +490,35 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
             rankedNew.length
           : 0;
 
-      setGtHistory((prev) => [
-        {
-          version: nextVerStr,
-          dateWIB,
-          timeWIB,
-          changedByLeaderboardName: author,
-          changedCount: newDataset.length,
-          reason,
-          previousAvgMacroF1: prevAvgMacroF1,
-          newAvgMacroF1: newAvgMacroF1,
-          maxScoreChangeSubmissionName: maxSubName,
-          maxScoreChangeDelta: maxDelta,
-          rankingChanged: posChangedCount > 0,
-          officialSubmissionPositionChanged: officialOldRank !== officialNewRank,
-          officialSubmissionOldRank: officialOldRank,
-          officialSubmissionNewRank: officialNewRank,
-          positionChangedCount: posChangedCount,
-        },
-        ...prev,
-      ]);
+      const gtEntry = {
+        version: nextVerStr,
+        dateWIB,
+        timeWIB,
+        changedByLeaderboardName: author,
+        changedCount: newDataset.length,
+        reason,
+        previousAvgMacroF1: prevAvgMacroF1,
+        newAvgMacroF1: newAvgMacroF1,
+        maxScoreChangeSubmissionName: maxSubName,
+        maxScoreChangeDelta: maxDelta,
+        rankingChanged: posChangedCount > 0,
+        officialSubmissionPositionChanged: officialOldRank !== officialNewRank,
+        officialSubmissionOldRank: officialOldRank,
+        officialSubmissionNewRank: officialNewRank,
+        positionChangedCount: posChangedCount,
+      };
 
-      setActivityLogs((prev) => [
-        {
-          id: `log-gt-${Date.now()}`,
-          timestampWIB: full,
-          title: `Ground Truth Diperbarui (${nextVerStr})`,
-          description: `${author} memperbarui Ground Truth (${newDataset.length} sampel). Alasan: ${reason}`,
-          type: "gt_update",
-        },
-        ...prev,
-      ]);
+      setGtHistory((prev) => [gtEntry, ...prev]);
+
+      const logEntry = {
+        id: `log-gt-${Date.now()}`,
+        timestampWIB: full,
+        title: `Ground Truth Diperbarui (${nextVerStr})`,
+        description: `${author} memperbarui Ground Truth (${newDataset.length} sampel). Alasan: ${reason}`,
+        type: "gt_update" as const,
+      };
+
+      setActivityLogs((prev) => [logEntry, ...prev]);
 
       pushStateToCloud({
         dataset: newDataset,
@@ -663,12 +673,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setOfficialActualF1 = useCallback((id: string, actualF1: number) => {
-    setSubmissions((prev) =>
-      prev.map((s) =>
+    setSubmissions((prev) => {
+      const updated = prev.map((s) =>
         s.id === id ? { ...s, officialActualF1: actualF1 } : s
-      )
-    );
-  }, []);
+      );
+      pushStateToCloud({ submissions: updated });
+      return updated;
+    });
+  }, [pushStateToCloud]);
 
   const resetToDefaultSeeds = useCallback(() => {
     lastWriteTimestampRef.current = Date.now();
