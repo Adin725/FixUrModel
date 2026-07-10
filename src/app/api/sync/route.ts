@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await (prisma as any).globalState.findMany();
     const state: Record<string, unknown> = {};
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
       if (body[key] !== undefined) {
         const valueStr =
           typeof body[key] === "string" ? body[key] : JSON.stringify(body[key]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (prisma as any).globalState.upsert({
           where: { key },
           update: { value: valueStr },
