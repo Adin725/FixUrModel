@@ -155,39 +155,55 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     });
 
-    // Sinkronisasi otomatis dari database cloud PostgreSQL
-    fetch("/api/sync")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.success && data.state) {
-          const { state } = data;
-          if (Array.isArray(state.users)) {
-            setUsers(state.users);
+    // Fungsi untuk menarik data terbaru dari PostgreSQL Cloud
+    const syncFromCloud = () => {
+      fetch("/api/sync")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.success && data.state) {
+            const { state } = data;
+            if (Array.isArray(state.users)) {
+              setUsers(state.users);
+            }
+            if (Array.isArray(state.submissions)) {
+              setSubmissions(state.submissions);
+            }
+            if (Array.isArray(state.dataset)) {
+              setDataset(state.dataset);
+            }
+            if (typeof state.activeGtVersion === "string") {
+              setActiveGtVersion(state.activeGtVersion);
+            }
+            if (Array.isArray(state.gtHistory)) {
+              setGtHistory(state.gtHistory);
+            }
+            if (Array.isArray(state.activityLogs)) {
+              setActivityLogs(state.activityLogs);
+            }
+            if (state.imageMap && typeof state.imageMap === "object") {
+              const mapObj = state.imageMap as Record<number, string>;
+              setImageMap(mapObj);
+              saveImageMapToIndexedDB(mapObj);
+            }
           }
-          if (Array.isArray(state.submissions)) {
-            setSubmissions(state.submissions);
-          }
-          if (Array.isArray(state.dataset)) {
-            setDataset(state.dataset);
-          }
-          if (typeof state.activeGtVersion === "string") {
-            setActiveGtVersion(state.activeGtVersion);
-          }
-          if (Array.isArray(state.gtHistory)) {
-            setGtHistory(state.gtHistory);
-          }
-          if (Array.isArray(state.activityLogs)) {
-            setActivityLogs(state.activityLogs);
-          }
-          if (state.imageMap && typeof state.imageMap === "object") {
-            const mapObj = state.imageMap as Record<number, string>;
-            setImageMap(mapObj);
-            saveImageMapToIndexedDB(mapObj);
-          }
-        }
-      })
-      .catch((err) => console.error("Gagal sinkronisasi awal dari cloud:", err))
-      .finally(() => setIsCloudReady(true));
+        })
+        .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
+        .finally(() => setIsCloudReady(true));
+    };
+
+    // Sinkronisasi pertama saat aplikasi dibuka
+    syncFromCloud();
+
+    // Polling real-time otomatis setiap 4 detik agar semua device selalu sinkron
+    const intervalId = setInterval(syncFromCloud, 4000);
+
+    // Sinkronisasi instan saat user berpindah tab atau mengetuk layar
+    window.addEventListener("focus", syncFromCloud);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", syncFromCloud);
+    };
   }, []);
 
   useEffect(() => {
