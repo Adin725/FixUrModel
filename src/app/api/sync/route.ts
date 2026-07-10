@@ -42,8 +42,23 @@ export async function POST(req: Request) {
 
     for (const key of keys) {
       if (body[key] !== undefined) {
+        let val = body[key];
+        if (key === "imageMap" && typeof val === "object" && val !== null && !body.reset) {
+          const existingRow = await (prisma as any).globalState.findUnique({
+            where: { key: "imageMap" },
+          });
+          if (existingRow && existingRow.value) {
+            try {
+              const existingMap = JSON.parse(existingRow.value);
+              val = { ...existingMap, ...val };
+            } catch {
+              // Abaikan jika tidak valid
+            }
+          }
+        }
+
         const valueStr =
-          typeof body[key] === "string" ? body[key] : JSON.stringify(body[key]);
+          typeof val === "string" ? val : JSON.stringify(val);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (prisma as any).globalState.upsert({
           where: { key },

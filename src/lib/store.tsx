@@ -210,6 +210,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  const pushStateToCloud = useCallback((payload: Record<string, unknown>) => {
+    fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -227,29 +235,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch {
       // Abaikan kesalahan penulisan penyimpanan lokal
     }
-
-    // Hindari echo loop: jika perubahan berasal dari penarikan cloud, JANGAN kirim POST balik yang menimpa cloud!
-    if (isRemoteUpdateRef.current) {
-      isRemoteUpdateRef.current = false;
-      return;
-    }
-
-    // Kirim pembaruan ke database cloud PostgreSQL secara real-time
-    if (isCloudReady) {
-      fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          users,
-          submissions,
-          dataset,
-          activeGtVersion,
-          gtHistory,
-          activityLogs,
-          imageMap,
-        }),
-      }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
-    }
   }, [
     users,
     currentUser,
@@ -258,8 +243,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     submissions,
     gtHistory,
     activityLogs,
-    imageMap,
-    isCloudReady,
   ]);
 
   const login = useCallback(
@@ -351,19 +334,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     const { full } = getFormattedWIB();
-    setActivityLogs((prev) => [
-      {
-        id: `log-zip-${Date.now()}`,
-        timestampWIB: full,
-        title: "ZIP Gambar Test Diunggah",
-        description: `Berhasil membaca dan mengekstrak ${extractedCount} gambar test dari file ${file.name}.`,
-        type: "system",
-      },
-      ...prev,
-    ]);
+    const logItem = {
+      id: `log-zip-${Date.now()}`,
+      timestampWIB: full,
+      title: "ZIP Gambar Test Diunggah",
+      description: `Berhasil membaca dan mengekstrak ${extractedCount} gambar test dari file ${file.name}.`,
+      type: "system" as const,
+    };
+
+    setActivityLogs((prev) => [logItem, ...prev]);
+
+    pushStateToCloud({
+      imageMap: newImageMap,
+      dataset: dataset.length === 0 ? [] : dataset,
+    });
 
     return extractedCount;
-  }, [dataset.length]);
+  }, [dataset, pushStateToCloud]);
 
   const recomputeAllSubmissions = useCallback(
     (currentDataset: DatasetItem[]) => {
@@ -501,9 +488,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         ...prev,
       ]);
 
+      pushStateToCloud({
+        dataset: newDataset,
+        activeGtVersion: nextVerStr,
+      });
+
       recomputeAllSubmissions(newDataset);
     },
-    [activeGtVersion, currentUser, recomputeAllSubmissions, submissions]
+    [activeGtVersion, currentUser, pushStateToCloud, recomputeAllSubmissions, submissions]
   );
 
   const updateSingleGroundTruthLabel = useCallback(
@@ -567,7 +559,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         list.sort((a, b) => b.testMacroF1 - a.testMacroF1);
         const ranked = list.map((s, idx) => ({ ...s, rank: idx + 1 }));
         const tagsMap = computeAutomaticTags(ranked);
-        return ranked.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+        const nextSubs = ranked.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+        pushStateToCloud({ submissions: nextSubs });
+        return nextSubs;
       });
 
       setActivityLogs((prev) => [
@@ -585,7 +579,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return newSub;
     },
-    [dataset]
+    [dataset, pushStateToCloud]
   );
 
   const deleteSubmission = useCallback((id: string) => {
@@ -593,9 +587,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       const filtered = prev.filter((s) => s.id !== id);
       const ranked = filtered.map((s, idx) => ({ ...s, rank: idx + 1 }));
       const tagsMap = computeAutomaticTags(ranked);
-      return ranked.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+      const nextSubs = ranked.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+      pushStateToCloud({ submissions: nextSubs });
+      return nextSubs;
     });
-  }, []);
+  }, [pushStateToCloud]);
 
   const setOfficialSubmission = useCallback((id: string, slot: 1 | 2 | 3 = 1) => {
     const { full } = getFormattedWIB();
@@ -610,23 +606,28 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         return s;
       });
       const tagsMap = computeAutomaticTags(updated);
-      return updated.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
-    });
-    setActivityLogs((prev) => [
-      {
-        id: `log-official-${Date.now()}`,
-        timestampWIB: full,
-        title: `Official Submission #${slot} Ditetapkan`,
-        description: `Submission dengan ID #${id} dipilih sebagai Official Submission #${slot} untuk evaluasi kalibrasi akhir.`,
-        type: "system",
-      },
-      ...prev,
-    ]);
-  }, []);
+        const nextSubs = updated.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+        pushStateToCloud({ submissions: nextSubs });
+        return nextSubs;
+      });
+      setActivityLogs((prev) => [
+        {
+          id: `log-official-${Date.now()}`,
+          timestampWIB: full,
+          title: `Official Submission #${slot} Ditetapkan`,
+          description: `Submission dengan ID #${id} dipilih sebagai Official Submission #${slot} untuk evaluasi kalibrasi akhir.`,
+          type: "system",
+        },
+        ...prev,
+      ]);
+    },
+    [pushStateToCloud]
+  );
 
   const switchActiveGtVersion = useCallback((version: string) => {
     const { full } = getFormattedWIB();
     setActiveGtVersion(version);
+    pushStateToCloud({ activeGtVersion: version });
     setActivityLogs((prev) => [
       {
         id: `log-gt-switch-${Date.now()}`,
