@@ -30,7 +30,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const keys = ["submissions", "dataset", "activeGtVersion", "gtHistory", "activityLogs"];
+    const keys = ["submissions", "dataset", "activeGtVersion", "gtHistory", "activityLogs", "imageMap"];
 
     for (const key of keys) {
       if (body[key] !== undefined) {

@@ -176,6 +176,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           if (Array.isArray(state.activityLogs) && state.activityLogs.length > 0) {
             setActivityLogs(state.activityLogs);
           }
+          if (state.imageMap && typeof state.imageMap === "object" && Object.keys(state.imageMap).length > 0) {
+            const mapObj = state.imageMap as Record<number, string>;
+            setImageMap(mapObj);
+            saveImageMapToIndexedDB(mapObj);
+          }
         }
       })
       .catch((err) => console.error("Gagal sinkronisasi awal dari cloud:", err))
@@ -211,6 +216,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           activeGtVersion,
           gtHistory,
           activityLogs,
+          imageMap,
         }),
       }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
     }
@@ -222,6 +228,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     submissions,
     gtHistory,
     activityLogs,
+    imageMap,
     isCloudReady,
   ]);
 
