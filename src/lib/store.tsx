@@ -170,8 +170,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           normalizedMap[numKey] = v;
         }
       }
-      setImageMap(normalizedMap);
-      saveImageMapToIndexedDB(normalizedMap);
+      // MERGE cloud imageMap ke lokal (bukan replace).
+      // Jika POST sebelumnya gagal (body terlalu besar),
+      // gambar lokal tetap aman dan tidak akan tertimpa oleh {} kosong dari cloud.
+      if (Object.keys(normalizedMap).length > 0) {
+        setImageMap((prev) => {
+          const merged = { ...prev, ...normalizedMap };
+          saveImageMapToIndexedDB(merged);
+          return merged;
+        });
+      }
     }
   }, []);
 
@@ -243,10 +251,31 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const pushStateToCloud = useCallback((payload: Record<string, unknown>) => {
     // Aktifkan cooldown: blokir semua pembacaan cloud selama 10 detik
     lastWriteTimestampRef.current = Date.now();
+
+    const bodyStr = JSON.stringify(payload);
+
+    // Vercel serverless functions memiliki batas body 4.5MB.
+    // Jika payload terlalu besar (biasanya karena imageMap berisi base64),
+    // kirim TANPA imageMap agar data lain (submissions, dataset, dll) tetap tersimpan.
+    const MAX_BODY_BYTES = 4 * 1024 * 1024; // 4MB safety margin
+    if (bodyStr.length > MAX_BODY_BYTES && payload.imageMap) {
+      console.warn(
+        `Payload terlalu besar (${(bodyStr.length / 1024 / 1024).toFixed(1)}MB). Mengirim tanpa imageMap.`
+      );
+      const { imageMap: _removed, ...rest } = payload;
+      void _removed;
+      fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rest),
+      }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
+      return;
+    }
+
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: bodyStr,
     }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
   }, []);
 
