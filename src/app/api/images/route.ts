@@ -6,8 +6,29 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const idsParam = searchParams.get("ids");
 
+    // 1. Pre-warm ping handshake
+    if (searchParams.get("ping") === "1") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (prisma as any).globalState.findFirst({ select: { key: true } });
+      return NextResponse.json({ success: true, pong: true });
+    }
+
+    // 2. Cek daftar ID yang sudah masuk di server (reconciliation check super cepat)
+    if (searchParams.get("checkIds") === "1") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = await (prisma as any).globalState.findMany({
+        where: { key: { startsWith: "img_" } },
+        select: { key: true },
+      });
+      const ids = rows
+        .map((r: { key: string }) => Number(r.key.replace("img_", "")))
+        .filter((n: number) => !isNaN(n));
+      return NextResponse.json({ success: true, ids });
+    }
+
+    // 3. Pengambilan spesifik atau seluruh gambar
+    const idsParam = searchParams.get("ids");
     let whereClause: Record<string, unknown>;
     if (idsParam) {
       const keys = idsParam
