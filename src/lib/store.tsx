@@ -199,53 +199,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
       .finally(() => setIsCloudReady(true));
 
-    // STRATEGI C: Batched Chunk Sync (Mengambil 2000+ gambar per batch 50 ID tanpa crash & tanpa CDN)
-    fetch("/api/images?checkIds=1")
-      .then((res) => res.json())
-      .then(async (data) => {
-        if (data && data.success && Array.isArray(data.ids)) {
-          const serverIds: number[] = data.ids;
-          const CHUNK_SIZE = 50;
-          for (let i = 0; i < serverIds.length; i += CHUNK_SIZE) {
-            const batchIds = serverIds.slice(i, i + CHUNK_SIZE);
-            try {
-              const res = await fetch(`/api/images?ids=${batchIds.join(",")}`);
-              const batchData = await res.json();
-              if (batchData && batchData.success && batchData.imageMap) {
-                setImageMap((prev) => {
-                  const merged = { ...prev, ...batchData.imageMap };
-                  saveImageMapToIndexedDB(merged);
-                  return merged;
-                });
-              }
-            } catch (err) {
-              console.error(`Gagal sinkronisasi batch gambar ${i}:`, err);
-            }
-          }
-        }
-      })
-      .catch((err) => console.error("Gagal cek ID gambar dari cloud:", err));
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
     async (id: number): Promise<string | null> => {
-      if (imageMap[id]) return imageMap[id];
-      try {
-        const res = await fetch(`/api/images?ids=${id}`);
-        const data = await res.json();
-        if (data && data.success && data.imageMap && data.imageMap[id]) {
-          const fetchedImage = data.imageMap[id] as string;
-          setImageMap((prev) => {
-            const merged = { ...prev, [id]: fetchedImage };
-            saveImageMapToIndexedDB(merged);
-            return merged;
-          });
-          return fetchedImage;
-        }
-      } catch (err) {
-        console.error(`Gagal mengambil gambar ID #${id}:`, err);
-      }
-      return null;
+      return imageMap[id] || null;
     },
     [imageMap]
   );
@@ -396,12 +354,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     const newImageMap: Record<number, string> = {};
     let extractedCount = 0;
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "hrf7byic";
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default";
-
     const fileEntries = Object.keys(contents.files);
-    const extractedEntries: Array<{ id: number; zipEntry: JSZip.JSZipObject; mimeType: string }> = [];
-
     for (const relativePath of fileEntries) {
       const zipEntry = contents.files[relativePath];
       if (zipEntry.dir) continue;
@@ -411,6 +364,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       if (match) {
         const id = parseInt(match[1], 10);
         if (!isNaN(id)) {
+          const base64Data = await zipEntry.async("base64");
           const ext = match[2].toLowerCase();
           const mimeType =
             ext === "png"
@@ -418,172 +372,51 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
               : ext === "webp"
               ? "image/webp"
               : "image/jpeg";
-          extractedEntries.push({ id, zipEntry, mimeType });
+          newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
+          extractedCount += 1;
         }
       }
     }
 
-    if (cloudName && uploadPreset) {
-      // STRATEGI A (Cloudinary CDN Enterprise Mode dengan Auto-Retry & Base64 Fallback)
-      // Mengunggah ke CDN + memperbarui layar secara progresif real-time per batch
-      const CONCURRENCY = 15;
-      for (let i = 0; i < extractedEntries.length; i += CONCURRENCY) {
-        const batch = extractedEntries.slice(i, i + CONCURRENCY);
-        const batchMap: Record<number, string> = {};
+    // 1. Simpan gambar langsung ke memori lokal browser & IndexedDB secara kilat (< 0.5 detik)
+    setImageMap((prev) => {
+      const merged = { ...prev, ...newImageMap };
+      saveImageMapToIndexedDB(merged);
+      return merged;
+    });
 
-        await Promise.all(
-          batch.map(async ({ id, zipEntry, mimeType }) => {
-            let cdnSuccess = false;
-            // Siapkan Data URI ber-MIME type resmi agar Cloudinary 100% menerima file dari browser
-            const base64Data = await zipEntry.async("base64");
-            const dataUri = `data:${mimeType};base64,${base64Data}`;
+    // 2. Siapkan Baseline Dataset (default label 0 / Recyclable) untuk seluruh ID gambar yang diekstrak
+    const ids = Object.keys(newImageMap)
+      .map(Number)
+      .sort((a, b) => a - b);
+    const updatedDataset: DatasetItem[] = ids.map((id) => ({
+      id,
+      imageNumber: id,
+      groundTruthLabel: "Recyclable",
+    }));
 
-            for (let attempt = 1; attempt <= 2 && !cdnSuccess; attempt++) {
-              try {
-                const formData = new FormData();
-                formData.append("file", dataUri);
-                formData.append("upload_preset", uploadPreset);
-                const res = await fetch(
-                  `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                  { method: "POST", body: formData }
-                );
-                const data = await res.json();
-                if (res.ok && data && data.secure_url) {
-                  newImageMap[id] = data.secure_url;
-                  batchMap[id] = data.secure_url;
-                  extractedCount += 1;
-                  cdnSuccess = true;
-                } else {
-                  console.warn(`[CDN Cloudinary] ID #${id} ditolak (Attempt ${attempt}):`, data?.error?.message || res.statusText);
-                }
-              } catch (err) {
-                console.warn(`[CDN Cloudinary] Network error ID #${id} (Attempt ${attempt}):`, err);
-              }
-              if (!cdnSuccess && attempt < 2) {
-                await new Promise((r) => setTimeout(r, 250));
-              }
-            }
-
-            // Fallback aman jika CDN mengalami gangguan sementara
-            if (!cdnSuccess) {
-              newImageMap[id] = dataUri;
-              batchMap[id] = dataUri;
-              extractedCount += 1;
-            }
-          })
-        );
-
-        // Perbarui layar secara langsung (Progressive Real-Time UI Update)
-        setImageMap((prev) => {
-          const merged = { ...prev, ...batchMap };
-          saveImageMapToIndexedDB(merged);
-          return merged;
-        });
-      }
-    } else {
-      // Mode Reguler (Base64 fallback jika Cloudinary belum dikonfigurasi)
-      for (const { id, zipEntry, mimeType } of extractedEntries) {
-        const base64Data = await zipEntry.async("base64");
-        newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
-        extractedCount += 1;
-      }
-      setImageMap((prev) => {
-        const merged = { ...prev, ...newImageMap };
-        saveImageMapToIndexedDB(merged);
-        return merged;
-      });
-    }
-
-    if (extractedCount > 0 && dataset.length === 0) {
-      const ids = Object.keys(newImageMap)
-        .map(Number)
-        .sort((a, b) => a - b);
-      const generatedDataset: DatasetItem[] = ids.map((id) => ({
-        id,
-        imageNumber: id,
-        groundTruthLabel: "Recyclable",
-      }));
-      setDataset(generatedDataset);
+    if (ids.length > 0) {
+      setDataset(updatedDataset);
     }
 
     const { full } = getFormattedWIB();
     const logItem = {
       id: `log-zip-${Date.now()}`,
       timestampWIB: full,
-      title: "ZIP Gambar Test Diunggah",
-      description: `Berhasil membaca dan mengekstrak ${extractedCount} gambar test dari file ${file.name}.`,
+      title: "ZIP Gambar Test Diunggah (Local-First Architecture)",
+      description: `Berhasil mengekstrak ${extractedCount} gambar ke memori lokal & sinkronisasi baseline label ke cloud.`,
       type: "system" as const,
     };
 
     setActivityLogs((prev) => [logItem, ...prev]);
 
-    // OPSI B PERFECTION: Pre-Warm Handshake & Auto-Reconcile Verification Loop
-    // Menjamin 100% seluruh ID gambar pasti tersimpan ke server cloud tanpa ada yang terlewat
-    const entries = Object.entries(newImageMap);
-    const isCdnMode = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
-    const BATCH_SIZE = isCdnMode ? 100 : 10;
-    (async () => {
-      // 1. Pre-warm handshake agar koneksi database siap (mencegah cold-start drop pada batch awal)
-      try {
-        await fetch("/api/images?ping=1");
-      } catch {
-        // abaikan ping error
-      }
-
-      const uploadMissingBatches = async (idsToUpload: number[]) => {
-        for (let i = 0; i < idsToUpload.length; i += BATCH_SIZE) {
-          const batchIds = idsToUpload.slice(i, i + BATCH_SIZE);
-          const batchMap: Record<number, string> = {};
-          for (const id of batchIds) {
-            if (newImageMap[id]) batchMap[id] = newImageMap[id];
-          }
-          let success = false;
-          for (let attempt = 1; attempt <= 3 && !success; attempt++) {
-            try {
-              const res = await fetch("/api/images", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ images: batchMap }),
-              });
-              if (res.ok) success = true;
-            } catch (err) {
-              console.error(`Gagal upload batch attempt #${attempt}:`, err);
-            }
-            if (!success) await new Promise((r) => setTimeout(r, 500));
-          }
-        }
-      };
-
-      // 2. Upload awal untuk semua gambar
-      const allIds = entries.map(([idStr]) => Number(idStr));
-      await uploadMissingBatches(allIds);
-
-      // 3. Auto-Reconciliation Loop: Cek ID di server dan upload ulang ID yang sempat terlewat
-      for (let pass = 1; pass <= 3; pass++) {
-        try {
-          const checkRes = await fetch("/api/images?checkIds=1");
-          const checkData = await checkRes.json();
-          if (checkData && checkData.success && Array.isArray(checkData.ids)) {
-            const serverIdsSet = new Set<number>(checkData.ids);
-            const missingIds = allIds.filter((id) => !serverIdsSet.has(id));
-            if (missingIds.length === 0) {
-              break;
-            } else {
-              await uploadMissingBatches(missingIds);
-            }
-          }
-        } catch {
-          // abaikan kesalahan sementara
-        }
-      }
-    })();
-
+    // 3. Sinkronisasikan struktur dataset & log secara real-time ke cloud agar seluruh device konsisten
     pushStateToCloud({
-      dataset: dataset.length === 0 ? [] : dataset,
+      dataset: updatedDataset,
     });
 
     return extractedCount;
-  }, [dataset, pushStateToCloud]);
+  }, [pushStateToCloud]);
 
   const recomputeAllSubmissions = useCallback(
     (currentDataset: DatasetItem[]) => {
