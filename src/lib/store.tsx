@@ -159,9 +159,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       setActivityLogs(state.activityLogs as ActivityLog[]);
     }
     if (state.imageMap && typeof state.imageMap === "object") {
-      // JSON dari cloud mengembalikan key sebagai string ("1", "23"),
-      // tapi komponen preview menggunakan number (1, 23).
-      // Normalisasi semua key menjadi number agar lookup imageMap[id] berhasil.
       const rawMap = state.imageMap as Record<string, string>;
       const normalizedMap: Record<number, string> = {};
       for (const [k, v] of Object.entries(rawMap)) {
@@ -170,9 +167,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           normalizedMap[numKey] = v;
         }
       }
-      // MERGE cloud imageMap ke lokal (bukan replace).
-      // Jika POST sebelumnya gagal (body terlalu besar),
-      // gambar lokal tetap aman dan tidak akan tertimpa oleh {} kosong dari cloud.
       if (Object.keys(normalizedMap).length > 0) {
         setImageMap((prev) => {
           const merged = { ...prev, ...normalizedMap };
@@ -194,7 +188,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       .then((res) => res.json())
       .then((data) => {
         if (data && data.success && data.state) {
-          // Cek ulang cooldown setelah fetch selesai (mungkin user menulis saat fetch berlangsung)
           const elapsedAfterFetch = Date.now() - lastWriteTimestampRef.current;
           if (elapsedAfterFetch < WRITE_COOLDOWN_MS) {
             return;
@@ -204,6 +197,22 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
       .finally(() => setIsCloudReady(true));
+
+    fetch("/api/images")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && data.imageMap) {
+          const cloudMap = data.imageMap as Record<number, string>;
+          if (Object.keys(cloudMap).length > 0) {
+            setImageMap((prev) => {
+              const merged = { ...prev, ...cloudMap };
+              saveImageMapToIndexedDB(merged);
+              return merged;
+            });
+          }
+        }
+      })
+      .catch((err) => console.error("Gagal sinkronisasi gambar dari cloud:", err));
   }, [applyCloudState]);
 
   useEffect(() => {
@@ -405,8 +414,24 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setActivityLogs((prev) => [logItem, ...prev]);
 
+    // Unggah gambar ke endpoint dedicated /api/images dalam batch kecil (5 gambar/req)
+    // sehingga tidak pernah terpotong batas 4.5 MB Vercel Serverless
+    const entries = Object.entries(newImageMap);
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+      const batchEntries = entries.slice(i, i + BATCH_SIZE);
+      const batchMap: Record<number, string> = {};
+      for (const [idStr, base64] of batchEntries) {
+        batchMap[Number(idStr)] = base64;
+      }
+      fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: batchMap }),
+      }).catch((err) => console.error("Gagal mengunggah batch gambar ke cloud:", err));
+    }
+
     pushStateToCloud({
-      imageMap: newImageMap,
       dataset: dataset.length === 0 ? [] : dataset,
     });
 
@@ -747,6 +772,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         reset: true,
       }),
     }).catch(() => {});
+
+    fetch("/api/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reset: true }),
+    }).catch(() => {});
   }, []);
 
   const resetAllProcessToZero = useCallback(() => {
@@ -785,6 +816,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         imageMap: {},
         reset: true,
       }),
+    }).catch(() => {});
+
+    fetch("/api/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reset: true }),
     }).catch(() => {});
   }, []);
 
