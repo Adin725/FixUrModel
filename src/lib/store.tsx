@@ -167,7 +167,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       return;
     }
 
-    fetch("/api/sync")
+    fetch(`/api/sync?_ts=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data && data.success && data.state) {
