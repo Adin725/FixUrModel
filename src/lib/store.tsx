@@ -132,17 +132,30 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     null
   );
 
-  const [isCloudReady, setIsCloudReady] = useState(false);
-
   const lastWriteTimestampRef = useRef(0);
   const cloudVersionRef = useRef(0);
-  const WRITE_COOLDOWN_MS = 3000;
 
   // Refs untuk akses state terbaru di dalam callback tanpa dependency loop
-  const stateRef = useRef({ users: DEFAULT_USERS as UserProfile[], submissions: INITIAL_SUBMISSIONS as Submission[], dataset: INITIAL_DATASET as DatasetItem[], activeGtVersion: "v1.0", gtHistory: INITIAL_GT_HISTORY as GroundTruthHistory[], activityLogs: INITIAL_ACTIVITY_LOGS as ActivityLog[] });
+  const stateRef = useRef({
+    users: DEFAULT_USERS as UserProfile[],
+    submissions: INITIAL_SUBMISSIONS as Submission[],
+    dataset: INITIAL_DATASET as DatasetItem[],
+    activeGtVersion: "v1.0",
+    gtHistory: INITIAL_GT_HISTORY as GroundTruthHistory[],
+    activityLogs: INITIAL_ACTIVITY_LOGS as ActivityLog[],
+    imageMap: {} as Record<number, string>,
+  });
   useEffect(() => {
-    stateRef.current = { users, submissions, dataset, activeGtVersion, gtHistory, activityLogs };
-  }, [users, submissions, dataset, activeGtVersion, gtHistory, activityLogs]);
+    stateRef.current = {
+      users,
+      submissions,
+      dataset,
+      activeGtVersion,
+      gtHistory,
+      activityLogs,
+      imageMap,
+    };
+  }, [users, submissions, dataset, activeGtVersion, gtHistory, activityLogs, imageMap]);
 
   const applyCloudState = useCallback((state: Record<string, unknown>) => {
     if (Array.isArray(state.users)) setUsers(state.users as UserProfile[]);
@@ -153,26 +166,78 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     if (Array.isArray(state.activityLogs)) setActivityLogs(state.activityLogs as ActivityLog[]);
   }, []);
 
+  const syncImagesFromCloud = useCallback(async () => {
+    try {
+      const res = await fetch("/api/images?checkIds=1", { cache: "no-store" });
+      const data = await res.json();
+      if (!data?.success || !Array.isArray(data.ids) || data.ids.length === 0) return;
+
+      const cloudIds: number[] = data.ids;
+      // Periksa ID mana yang belum ada di memori lokal kita
+      const currentMap = stateRef.current.imageMap || {};
+      const missingIds = cloudIds.filter((id) => !currentMap[id]);
+
+      if (missingIds.length > 0) {
+        // Ambil batch gambar yang hilang secara efisien
+        const chunkedIds: number[][] = [];
+        for (let i = 0; i < missingIds.length; i += 20) {
+          chunkedIds.push(missingIds.slice(i, i + 20));
+        }
+
+        for (const chunk of chunkedIds) {
+          const imgRes = await fetch(`/api/images?ids=${chunk.join(",")}`, { cache: "no-store" });
+          const imgData = await imgRes.json();
+          if (imgData?.success && imgData.imageMap) {
+            setImageMap((prev) => {
+              const merged = { ...prev, ...imgData.imageMap };
+              saveImageMapToIndexedDB(merged);
+              return merged;
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("syncImagesFromCloud error:", err);
+    }
+  }, []);
+
   const syncFromCloud = useCallback(() => {
-    if (Date.now() - lastWriteTimestampRef.current < WRITE_COOLDOWN_MS) return;
+    if (Date.now() - lastWriteTimestampRef.current < 1200) return;
 
     fetch(`/api/sync?_t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         if (!data?.success || !data.state) return;
-        if (Date.now() - lastWriteTimestampRef.current < WRITE_COOLDOWN_MS) return;
+        if (Date.now() - lastWriteTimestampRef.current < 1200) return;
         const serverVersion = data.version || 0;
         if (serverVersion > cloudVersionRef.current) {
           cloudVersionRef.current = serverVersion;
           applyCloudState(data.state);
         }
       })
-      .catch((err) => console.error("Sync read error:", err))
-      .finally(() => setIsCloudReady(true));
+      .catch((err) => console.error("Sync read error:", err));
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
-    async (id: number): Promise<string | null> => imageMap[id] || null,
+    async (id: number): Promise<string | null> => {
+      if (imageMap[id]) return imageMap[id];
+      try {
+        const res = await fetch(`/api/images?ids=${id}`, { cache: "no-store" });
+        const data = await res.json();
+        if (data?.success && data.imageMap && data.imageMap[id]) {
+          const fetchedImg = data.imageMap[id];
+          setImageMap((prev) => {
+            const merged = { ...prev, [id]: fetchedImg };
+            saveImageMapToIndexedDB(merged);
+            return merged;
+          });
+          return fetchedImg;
+        }
+      } catch (err) {
+        console.error(`fetchImageById(${id}) error:`, err);
+      }
+      return null;
+    },
     [imageMap]
   );
 
@@ -196,19 +261,33 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     syncFromCloud();
-    const iv = setInterval(syncFromCloud, 4000);
-    window.addEventListener("focus", syncFromCloud);
-    const hv = () => { if (document.visibilityState === "visible") syncFromCloud(); };
-    document.addEventListener("visibilitychange", hv);
-    return () => { clearInterval(iv); window.removeEventListener("focus", syncFromCloud); document.removeEventListener("visibilitychange", hv); };
-  }, [syncFromCloud]);
+    syncImagesFromCloud();
 
-  // Mengirim SELURUH state ke cloud sebagai satu blob atomik.
-  // `overrides` berisi field yang BARU SAJA di-update (belum masuk stateRef).
+    const iv = setInterval(() => {
+      syncFromCloud();
+      syncImagesFromCloud();
+    }, 2500);
+
+    const hv = () => {
+      if (document.visibilityState === "visible") {
+        syncFromCloud();
+        syncImagesFromCloud();
+      }
+    };
+    window.addEventListener("focus", hv);
+    document.addEventListener("visibilitychange", hv);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener("focus", hv);
+      document.removeEventListener("visibilitychange", hv);
+    };
+  }, [syncFromCloud, syncImagesFromCloud]);
+
+  // Mengirim SELURUH state ke cloud sebagai satu blob atomik dengan Timestamp mutlak
   const pushStateToCloud = useCallback((overrides?: Record<string, unknown>) => {
     lastWriteTimestampRef.current = Date.now();
-    const nextVersion = cloudVersionRef.current + 1;
-    cloudVersionRef.current = nextVersion;
+    const nextVersion = Date.now();
+    cloudVersionRef.current = Math.max(cloudVersionRef.current, nextVersion);
 
     const s = stateRef.current;
     const state = {
@@ -325,14 +404,43 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    // 1. Simpan gambar langsung ke memori lokal browser & IndexedDB secara kilat (< 0.5 detik)
+    // 1. Simpan gambar langsung ke memori lokal browser & IndexedDB secara kilat
     setImageMap((prev) => {
       const merged = { ...prev, ...newImageMap };
       saveImageMapToIndexedDB(merged);
       return merged;
     });
 
-    // 2. Pertahankan Ground Truth yang sudah tersinkronisasi dari cloud (Jangan pernah timpa ke 0 jika sudah ada label dari device lain!)
+    // 2. Unggah gambar ke cloud database (POST /api/images) agar sinkron ke seluruh device pengguna lain!
+    const imageEntries = Object.entries(newImageMap);
+    if (imageEntries.length > 0) {
+      const chunks: Record<string, string>[] = [];
+      let currentChunk: Record<string, string> = {};
+      let count = 0;
+      for (const [k, v] of imageEntries) {
+        currentChunk[k] = v;
+        count++;
+        if (count >= 15) {
+          chunks.push(currentChunk);
+          currentChunk = {};
+          count = 0;
+        }
+      }
+      if (count > 0) chunks.push(currentChunk);
+
+      // Unggah chunk gambar di background
+      Promise.all(
+        chunks.map((chunk) =>
+          fetch("/api/images", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ images: chunk }),
+          })
+        )
+      ).catch((err) => console.error("Upload images to cloud error:", err));
+    }
+
+    // 3. Pertahankan Ground Truth yang sudah tersinkronisasi dari cloud
     const ids = Object.keys(newImageMap)
       .map(Number)
       .sort((a, b) => a - b);
@@ -356,19 +464,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     const logItem = {
       id: `log-zip-${Date.now()}`,
       timestampWIB: full,
-      title: "ZIP Gambar Test Diunggah (Local-First Architecture)",
-      description: `Berhasil mengekstrak ${extractedCount} gambar ke memori lokal tanpa menimpa Ground Truth aktif.`,
+      title: "ZIP Gambar Test Diunggah & Disinkronkan ke Cloud",
+      description: `Berhasil mengekstrak ${extractedCount} gambar dan mensinkronkan seluruh dataset ke semua device pengguna.`,
       type: "system" as const,
     };
 
-    setActivityLogs((prev) => [logItem, ...prev]);
-
-    // 3. Hanya kirim struktur dataset ke cloud jika dataset cloud sebelumnya masih kosong (inisialisasi awal)
-    if (dataset.length === 0) {
+    setActivityLogs((prev) => {
+      const nextLogs = [logItem, ...prev];
+      // SYNC LANGSUNG KE CLOUD UNTUK SEMUA DEVICE!
       pushStateToCloud({
         dataset: updatedDataset,
+        activityLogs: nextLogs,
       });
-    }
+      return nextLogs;
+    });
 
     return extractedCount;
   }, [dataset, pushStateToCloud]);

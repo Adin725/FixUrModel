@@ -7,8 +7,8 @@ const SYNC_KEY = "app_state_v3";
 
 /**
  * GET /api/sync
- * Mengambil seluruh state aplikasi dari satu row di database.
- * Sangat cepat karena hanya 1 query, 1 row.
+ * Mengambil seluruh state aplikasi secara atomik dari database.
+ * Dioptimalkan dengan header anti-cache mutlak agar semua device menerima update langsung.
  */
 export async function GET() {
   try {
@@ -22,7 +22,7 @@ export async function GET() {
         { success: true, state: null, version: 0 },
         {
           headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             Pragma: "no-cache",
           },
         }
@@ -34,7 +34,7 @@ export async function GET() {
       { success: true, state: parsed.state, version: parsed.version || 0 },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
           Pragma: "no-cache",
         },
       }
@@ -51,8 +51,8 @@ export async function GET() {
 /**
  * POST /api/sync
  * Menyimpan seluruh state aplikasi sebagai satu blob JSON atomik.
- * Menerima: { state: {...}, version: number }
- * Version digunakan untuk conflict resolution: yang lebih baru menang.
+ * Menerima: { state: {...}, version: number (Date.now() timestamp) }
+ * Setiap perubahan baru dari device manapun langsung dipersistensi.
  */
 export async function POST(req: Request) {
   try {
@@ -66,36 +66,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Baca versi cloud saat ini
+    const valueStr = JSON.stringify({ state, version });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const existing = await (prisma as any).globalState.findUnique({
+    await (prisma as any).globalState.upsert({
       where: { key: SYNC_KEY },
+      update: { value: valueStr },
+      create: { key: SYNC_KEY, value: valueStr },
     });
 
-    let shouldWrite = true;
-    if (existing && existing.value) {
-      try {
-        const parsed = JSON.parse(existing.value);
-        // Hanya tulis jika versi baru >= versi cloud
-        if (typeof parsed.version === "number" && version < parsed.version) {
-          shouldWrite = false;
-        }
-      } catch {
-        // Data lama rusak, timpa saja
+    return NextResponse.json(
+      { success: true, written: true, version },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+        },
       }
-    }
-
-    if (shouldWrite) {
-      const valueStr = JSON.stringify({ state, version });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (prisma as any).globalState.upsert({
-        where: { key: SYNC_KEY },
-        update: { value: valueStr },
-        create: { key: SYNC_KEY, value: valueStr },
-      });
-    }
-
-    return NextResponse.json({ success: true, written: shouldWrite });
+    );
   } catch (error) {
     console.error("POST /api/sync error:", error);
     return NextResponse.json(
@@ -104,3 +91,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

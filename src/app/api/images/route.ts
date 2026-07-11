@@ -18,13 +18,43 @@ export async function GET(req: Request) {
     if (searchParams.get("checkIds") === "1") {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows = await (prisma as any).globalState.findMany({
-        where: { key: { startsWith: "img_" } },
-        select: { key: true },
+        where: {
+          OR: [
+            { key: { startsWith: "img_" } },
+            { key: "imageMap" },
+          ],
+        },
+        select: { key: true, value: true },
       });
-      const ids = rows
-        .map((r: { key: string }) => Number(r.key.replace("img_", "")))
-        .filter((n: number) => !isNaN(n));
-      return NextResponse.json({ success: true, ids });
+
+      const idSet = new Set<number>();
+      for (const r of rows) {
+        if (r.key.startsWith("img_")) {
+          const num = Number(r.key.replace("img_", ""));
+          if (!isNaN(num)) idSet.add(num);
+        } else if (r.key === "imageMap") {
+          try {
+            const parsed = JSON.parse(r.value);
+            Object.keys(parsed).forEach((k) => {
+              const num = Number(k);
+              if (!isNaN(num)) idSet.add(num);
+            });
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      const ids = Array.from(idSet).sort((a, b) => a - b);
+      return NextResponse.json(
+        { success: true, ids },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            Pragma: "no-cache",
+          },
+        }
+      );
     }
 
     // 3. Pengambilan spesifik atau seluruh gambar
@@ -73,7 +103,15 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, imageMap });
+    return NextResponse.json(
+      { success: true, imageMap },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          Pragma: "no-cache",
+        },
+      }
+    );
   } catch (error) {
     console.error("GET /api/images error:", error);
     return NextResponse.json(

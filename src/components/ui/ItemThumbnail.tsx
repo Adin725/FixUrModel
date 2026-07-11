@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { ClassLabel } from "@/types";
 import { useAppStore } from "@/lib/store";
 import { mapClassLabelToNumeric } from "@/lib/evaluator";
@@ -19,9 +19,15 @@ export const ItemThumbnail: React.FC<ItemThumbnailProps> = ({
   label,
   size = "md",
 }) => {
-  const { imageMap, setPreviewImageModalId } = useAppStore();
+  const { imageMap, setPreviewImageModalId, fetchImageById } = useAppStore();
   const realImage = imageMap[id];
   const numericCode = mapClassLabelToNumeric(label);
+
+  useEffect(() => {
+    if (!realImage) {
+      fetchImageById(id);
+    }
+  }, [id, realImage, fetchImageById]);
 
   const sizeClasses = {
     sm: "h-11 w-11",
@@ -58,3 +64,4 @@ export const ItemThumbnail: React.FC<ItemThumbnailProps> = ({
     </button>
   );
 };
+

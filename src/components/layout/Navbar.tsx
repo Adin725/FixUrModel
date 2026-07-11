@@ -52,13 +52,18 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          <div className="hidden sm:flex items-center pl-2">
+          <div className="hidden sm:flex items-center gap-2 pl-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/80 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 whitespace-nowrap dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
               <span>
                 GT: <strong className="font-mono">{activeGtVersion}</strong> (
                 {dataset.length} Gambar)
               </span>
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/80 bg-blue-50/80 px-2.5 py-1 text-[10px] font-bold text-blue-700 whitespace-nowrap dark:border-blue-900/60 dark:bg-blue-950/60 dark:text-blue-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
+              <span>Multi-Device Cloud Sync: Aktif</span>
             </span>
           </div>
         </div>
