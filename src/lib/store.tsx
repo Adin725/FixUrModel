@@ -138,7 +138,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   // Selama cooldown aktif, SEMUA pembacaan dari cloud DIBLOKIR
   // agar data lokal yang baru saja ditulis tidak tertimpa oleh data lama.
   const lastWriteTimestampRef = useRef(0);
-  const WRITE_COOLDOWN_MS = 10000; // 10 detik cooldown setelah menulis
+  const WRITE_COOLDOWN_MS = 2500; // 2.5 detik cooldown setelah menulis
 
   const applyCloudState = useCallback((state: Record<string, unknown>) => {
     if (Array.isArray(state.users)) {
@@ -159,27 +159,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     if (Array.isArray(state.activityLogs)) {
       setActivityLogs(state.activityLogs as ActivityLog[]);
     }
-    if (state.imageMap && typeof state.imageMap === "object") {
-      const rawMap = state.imageMap as Record<string, string>;
-      const normalizedMap: Record<number, string> = {};
-      for (const [k, v] of Object.entries(rawMap)) {
-        const numKey = Number(k);
-        if (!isNaN(numKey) && typeof v === "string") {
-          normalizedMap[numKey] = v;
-        }
-      }
-      if (Object.keys(normalizedMap).length > 0) {
-        setImageMap((prev) => {
-          const merged = { ...prev, ...normalizedMap };
-          saveImageMapToIndexedDB(merged);
-          return merged;
-        });
-      }
-    }
   }, []);
 
   const syncFromCloud = useCallback(() => {
-    // BLOKIR pembacaan cloud jika baru saja menulis (cooldown aktif)
     const elapsed = Date.now() - lastWriteTimestampRef.current;
     if (elapsed < WRITE_COOLDOWN_MS) {
       return;
@@ -198,7 +180,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
       .finally(() => setIsCloudReady(true));
-
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
@@ -222,7 +203,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         if (parsed.activityLogs) setActivityLogs(parsed.activityLogs);
       }
     } catch {
-      // Abaikan kesalahan pembacaan penyimpanan lokal
+      // ignore
     }
 
     loadImageMapFromIndexedDB().then((savedMap) => {
@@ -231,12 +212,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     });
 
-    // Sinkronisasi pertama saat aplikasi dibuka
     syncFromCloud();
 
-    // Sinkronisasi saat user kembali ke tab/window ini (bukan polling agresif)
+    const intervalId = setInterval(() => {
+      syncFromCloud();
+    }, 4000);
+
     window.addEventListener("focus", syncFromCloud);
-    // Juga sync saat visibilitas berubah (user buka tab lain lalu kembali)
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         syncFromCloud();
@@ -245,6 +227,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      clearInterval(intervalId);
       window.removeEventListener("focus", syncFromCloud);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
@@ -385,14 +368,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       return merged;
     });
 
-    // 2. Siapkan Baseline Dataset (default label 0 / Recyclable) untuk seluruh ID gambar yang diekstrak
+    // 2. Pertahankan Ground Truth yang sudah tersinkronisasi dari cloud (Jangan pernah timpa ke 0 jika sudah ada label dari device lain!)
     const ids = Object.keys(newImageMap)
       .map(Number)
       .sort((a, b) => a - b);
+
+    const existingGtLabelMap: Record<number, ClassLabel> = {};
+    for (const item of dataset) {
+      existingGtLabelMap[item.id] = item.groundTruthLabel;
+    }
+
     const updatedDataset: DatasetItem[] = ids.map((id) => ({
       id,
       imageNumber: id,
-      groundTruthLabel: "Recyclable",
+      groundTruthLabel: existingGtLabelMap[id] || "Recyclable",
     }));
 
     if (ids.length > 0) {
@@ -404,19 +393,21 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       id: `log-zip-${Date.now()}`,
       timestampWIB: full,
       title: "ZIP Gambar Test Diunggah (Local-First Architecture)",
-      description: `Berhasil mengekstrak ${extractedCount} gambar ke memori lokal & sinkronisasi baseline label ke cloud.`,
+      description: `Berhasil mengekstrak ${extractedCount} gambar ke memori lokal tanpa menimpa Ground Truth aktif.`,
       type: "system" as const,
     };
 
     setActivityLogs((prev) => [logItem, ...prev]);
 
-    // 3. Sinkronisasikan struktur dataset & log secara real-time ke cloud agar seluruh device konsisten
-    pushStateToCloud({
-      dataset: updatedDataset,
-    });
+    // 3. Hanya kirim struktur dataset ke cloud jika dataset cloud sebelumnya masih kosong (inisialisasi awal)
+    if (dataset.length === 0) {
+      pushStateToCloud({
+        dataset: updatedDataset,
+      });
+    }
 
     return extractedCount;
-  }, [pushStateToCloud]);
+  }, [dataset, pushStateToCloud]);
 
   const recomputeAllSubmissions = useCallback(
     (currentDataset: DatasetItem[]) => {
@@ -542,8 +533,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         positionChangedCount: posChangedCount,
       };
 
-      setGtHistory((prev) => [gtEntry, ...prev]);
-
       const logEntry = {
         id: `log-gt-${Date.now()}`,
         timestampWIB: full,
@@ -552,11 +541,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         type: "gt_update" as const,
       };
 
-      setActivityLogs((prev) => [logEntry, ...prev]);
+      const nextGtHistory = [gtEntry, ...gtHistory];
+      const nextLogs = [logEntry, ...activityLogs];
+      setGtHistory(nextGtHistory);
+      setActivityLogs(nextLogs);
 
       pushStateToCloud({
         dataset: newDataset,
         activeGtVersion: nextVerStr,
+        gtHistory: nextGtHistory,
+        activityLogs: nextLogs,
       });
 
       recomputeAllSubmissions(newDataset);
@@ -620,28 +614,27 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         reasonOfRevision: params.reasonOfRevision || "",
       };
 
+      const logItem = {
+        id: `log-sub-${Date.now()}`,
+        timestampWIB: full,
+        title: `Submission Baru Diunggah (${params.name})`,
+        description: `${params.leaderboardName} mengunggah model "${params.modelName}" dengan Macro F1 Test ${(
+          evalSummary.macroF1 * 100
+        ).toFixed(2)}%.`,
+        type: "submission" as const,
+      };
+      const nextLogs = [logItem, ...activityLogs];
+      setActivityLogs(nextLogs);
+
       setSubmissions((prev) => {
         const list = [newSub, ...prev];
         list.sort((a, b) => b.testMacroF1 - a.testMacroF1);
         const ranked = list.map((s, idx) => ({ ...s, rank: idx + 1 }));
         const tagsMap = computeAutomaticTags(ranked);
         const nextSubs = ranked.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
-        pushStateToCloud({ submissions: nextSubs });
+        pushStateToCloud({ submissions: nextSubs, activityLogs: nextLogs });
         return nextSubs;
       });
-
-      setActivityLogs((prev) => [
-        {
-          id: `log-sub-${Date.now()}`,
-          timestampWIB: full,
-          title: `Submission Baru Diunggah (${params.name})`,
-          description: `${params.leaderboardName} mengunggah model "${params.modelName}" dengan Macro F1 Test ${(
-            evalSummary.macroF1 * 100
-          ).toFixed(2)}%.`,
-          type: "submission",
-        },
-        ...prev,
-      ]);
 
       return newSub;
     },
@@ -661,6 +654,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setOfficialSubmission = useCallback((id: string, slot: 1 | 2 | 3 = 1) => {
     const { full } = getFormattedWIB();
+    const logItem = {
+      id: `log-official-${Date.now()}`,
+      timestampWIB: full,
+      title: `Official Submission #${slot} Ditetapkan`,
+      description: `Submission dengan ID #${id} dipilih sebagai Official Submission #${slot} untuk evaluasi kalibrasi akhir.`,
+      type: "system" as const,
+    };
+    const nextLogs = [logItem, ...activityLogs];
+    setActivityLogs(nextLogs);
+
     setSubmissions((prev) => {
       const updated = prev.map((s) => {
         if (s.id === id) {
@@ -672,39 +675,26 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         return s;
       });
       const tagsMap = computeAutomaticTags(updated);
-        const nextSubs = updated.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
-        pushStateToCloud({ submissions: nextSubs });
-        return nextSubs;
-      });
-      setActivityLogs((prev) => [
-        {
-          id: `log-official-${Date.now()}`,
-          timestampWIB: full,
-          title: `Official Submission #${slot} Ditetapkan`,
-          description: `Submission dengan ID #${id} dipilih sebagai Official Submission #${slot} untuk evaluasi kalibrasi akhir.`,
-          type: "system",
-        },
-        ...prev,
-      ]);
-    },
-    [pushStateToCloud]
-  );
+      const nextSubs = updated.map((s) => ({ ...s, tags: tagsMap[s.id] || [] }));
+      pushStateToCloud({ submissions: nextSubs, activityLogs: nextLogs });
+      return nextSubs;
+    });
+  }, [activityLogs, pushStateToCloud]);
 
   const switchActiveGtVersion = useCallback((version: string) => {
     const { full } = getFormattedWIB();
+    const logItem = {
+      id: `log-gt-switch-${Date.now()}`,
+      timestampWIB: full,
+      title: `Ground Truth Aktif Berubah (${version})`,
+      description: `Versi Ground Truth aktif dikembalikan / disetel ke ${version}.`,
+      type: "gt_update" as const,
+    };
+    const nextLogs = [logItem, ...activityLogs];
     setActiveGtVersion(version);
-    pushStateToCloud({ activeGtVersion: version });
-    setActivityLogs((prev) => [
-      {
-        id: `log-gt-switch-${Date.now()}`,
-        timestampWIB: full,
-        title: `Ground Truth Aktif Berubah (${version})`,
-        description: `Versi Ground Truth aktif dikembalikan / disetel ke ${version}.`,
-        type: "gt_update",
-      },
-      ...prev,
-    ]);
-  }, []);
+    setActivityLogs(nextLogs);
+    pushStateToCloud({ activeGtVersion: version, activityLogs: nextLogs });
+  }, [activityLogs, pushStateToCloud]);
 
   const setOfficialActualF1 = useCallback((id: string, actualF1: number) => {
     setSubmissions((prev) => {
