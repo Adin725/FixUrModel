@@ -413,32 +413,62 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     if (cloudName && uploadPreset) {
-      // STRATEGI A (Cloudinary CDN Enterprise Mode)
-      // Unggah langsung ke CDN dalam batch paralel ringan sehingga database hanya menyimpan URL pendek
-      const CONCURRENCY = 5;
+      // STRATEGI A (Cloudinary CDN Enterprise Mode dengan Auto-Retry & Base64 Fallback)
+      // Mengunggah ke CDN + memperbarui layar secara progresif real-time per batch
+      const CONCURRENCY = 8;
       for (let i = 0; i < extractedEntries.length; i += CONCURRENCY) {
         const batch = extractedEntries.slice(i, i + CONCURRENCY);
+        const batchMap: Record<number, string> = {};
+
         await Promise.all(
           batch.map(async ({ id, zipEntry, mimeType }) => {
-            try {
-              const blob = await zipEntry.async("blob");
-              const formData = new FormData();
-              formData.append("file", blob, `${id}.jpg`);
-              formData.append("upload_preset", uploadPreset);
-              const res = await fetch(
-                `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                { method: "POST", body: formData }
-              );
-              const data = await res.json();
-              if (data && data.secure_url) {
-                newImageMap[id] = data.secure_url;
-                extractedCount += 1;
+            let cdnSuccess = false;
+            for (let attempt = 1; attempt <= 3 && !cdnSuccess; attempt++) {
+              try {
+                const blob = await zipEntry.async("blob");
+                const formData = new FormData();
+                formData.append("file", blob, `${id}.jpg`);
+                formData.append("upload_preset", uploadPreset);
+                const res = await fetch(
+                  `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+                  { method: "POST", body: formData }
+                );
+                const data = await res.json();
+                if (res.ok && data && data.secure_url) {
+                  newImageMap[id] = data.secure_url;
+                  batchMap[id] = data.secure_url;
+                  extractedCount += 1;
+                  cdnSuccess = true;
+                }
+              } catch {
+                // coba ulang pada attempt berikutnya
               }
-            } catch (err) {
-              console.error(`Gagal upload CDN Cloudinary untuk ID #${id}:`, err);
+              if (!cdnSuccess && attempt < 3) {
+                await new Promise((r) => setTimeout(r, 400));
+              }
+            }
+
+            // Jika CDN gagal setelah 3x percobaan, gunakan fallback Base64 agar gambar dijamin 100% muncul
+            if (!cdnSuccess) {
+              try {
+                const base64Data = await zipEntry.async("base64");
+                const fallbackUrl = `data:${mimeType};base64,${base64Data}`;
+                newImageMap[id] = fallbackUrl;
+                batchMap[id] = fallbackUrl;
+                extractedCount += 1;
+              } catch (fallbackErr) {
+                console.error(`Gagal fallback gambar ID #${id}:`, fallbackErr);
+              }
             }
           })
         );
+
+        // Perbarui layar secara langsung (Progressive Real-Time UI Update)
+        setImageMap((prev) => {
+          const merged = { ...prev, ...batchMap };
+          saveImageMapToIndexedDB(merged);
+          return merged;
+        });
       }
     } else {
       // Mode Reguler (Base64 fallback jika Cloudinary belum dikonfigurasi)
@@ -447,13 +477,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
         extractedCount += 1;
       }
+      setImageMap((prev) => {
+        const merged = { ...prev, ...newImageMap };
+        saveImageMapToIndexedDB(merged);
+        return merged;
+      });
     }
-
-    setImageMap((prev) => {
-      const merged = { ...prev, ...newImageMap };
-      saveImageMapToIndexedDB(merged);
-      return merged;
-    });
 
     if (extractedCount > 0 && dataset.length === 0) {
       const ids = Object.keys(newImageMap)
