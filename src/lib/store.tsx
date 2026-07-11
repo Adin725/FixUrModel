@@ -385,7 +385,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     const newImageMap: Record<number, string> = {};
     let extractedCount = 0;
 
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
     const fileEntries = Object.keys(contents.files);
+    const extractedEntries: Array<{ id: number; zipEntry: JSZip.JSZipObject; mimeType: string }> = [];
+
     for (const relativePath of fileEntries) {
       const zipEntry = contents.files[relativePath];
       if (zipEntry.dir) continue;
@@ -395,7 +400,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       if (match) {
         const id = parseInt(match[1], 10);
         if (!isNaN(id)) {
-          const base64Data = await zipEntry.async("base64");
           const ext = match[2].toLowerCase();
           const mimeType =
             ext === "png"
@@ -403,9 +407,45 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
               : ext === "webp"
               ? "image/webp"
               : "image/jpeg";
-          newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
-          extractedCount += 1;
+          extractedEntries.push({ id, zipEntry, mimeType });
         }
+      }
+    }
+
+    if (cloudName && uploadPreset) {
+      // STRATEGI A (Cloudinary CDN Enterprise Mode)
+      // Unggah langsung ke CDN dalam batch paralel ringan sehingga database hanya menyimpan URL pendek
+      const CONCURRENCY = 5;
+      for (let i = 0; i < extractedEntries.length; i += CONCURRENCY) {
+        const batch = extractedEntries.slice(i, i + CONCURRENCY);
+        await Promise.all(
+          batch.map(async ({ id, zipEntry, mimeType }) => {
+            try {
+              const blob = await zipEntry.async("blob");
+              const formData = new FormData();
+              formData.append("file", blob, `${id}.jpg`);
+              formData.append("upload_preset", uploadPreset);
+              const res = await fetch(
+                `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+                { method: "POST", body: formData }
+              );
+              const data = await res.json();
+              if (data && data.secure_url) {
+                newImageMap[id] = data.secure_url;
+                extractedCount += 1;
+              }
+            } catch (err) {
+              console.error(`Gagal upload CDN Cloudinary untuk ID #${id}:`, err);
+            }
+          })
+        );
+      }
+    } else {
+      // Mode Reguler (Base64 fallback jika Cloudinary belum dikonfigurasi)
+      for (const { id, zipEntry, mimeType } of extractedEntries) {
+        const base64Data = await zipEntry.async("base64");
+        newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
+        extractedCount += 1;
       }
     }
 
@@ -441,7 +481,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     // OPSI B PERFECTION: Pre-Warm Handshake & Auto-Reconcile Verification Loop
     // Menjamin 100% seluruh ID gambar pasti tersimpan ke server cloud tanpa ada yang terlewat
     const entries = Object.entries(newImageMap);
-    const BATCH_SIZE = 10;
+    const isCdnMode = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+    const BATCH_SIZE = isCdnMode ? 100 : 10;
     (async () => {
       // 1. Pre-warm handshake agar koneksi database siap (mencegah cold-start drop pada batch awal)
       try {

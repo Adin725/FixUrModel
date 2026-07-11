@@ -40,6 +40,7 @@ export const ItemThumbnail: React.FC<ItemThumbnailProps> = ({
         <img
           src={realImage}
           alt={`#${id}`}
+          loading="lazy"
           className="h-full w-full object-cover group-hover:scale-105 transition-transform"
         />
       ) : (
