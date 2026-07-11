@@ -134,64 +134,45 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const [isCloudReady, setIsCloudReady] = useState(false);
 
-  // Timestamp terakhir kali device ini menulis ke cloud.
-  // Selama cooldown aktif, SEMUA pembacaan dari cloud DIBLOKIR
-  // agar data lokal yang baru saja ditulis tidak tertimpa oleh data lama.
   const lastWriteTimestampRef = useRef(0);
-  const WRITE_COOLDOWN_MS = 2500; // 2.5 detik cooldown setelah menulis
+  const cloudVersionRef = useRef(0);
+  const WRITE_COOLDOWN_MS = 3000;
+
+  // Refs untuk akses state terbaru di dalam callback tanpa dependency loop
+  const stateRef = useRef({ users: DEFAULT_USERS as UserProfile[], submissions: INITIAL_SUBMISSIONS as Submission[], dataset: INITIAL_DATASET as DatasetItem[], activeGtVersion: "v1.0", gtHistory: INITIAL_GT_HISTORY as GroundTruthHistory[], activityLogs: INITIAL_ACTIVITY_LOGS as ActivityLog[] });
+  useEffect(() => {
+    stateRef.current = { users, submissions, dataset, activeGtVersion, gtHistory, activityLogs };
+  }, [users, submissions, dataset, activeGtVersion, gtHistory, activityLogs]);
 
   const applyCloudState = useCallback((state: Record<string, unknown>) => {
-    if (Array.isArray(state.users)) {
-      setUsers(state.users as UserProfile[]);
-    }
-    if (Array.isArray(state.submissions)) {
-      setSubmissions(state.submissions as Submission[]);
-    }
-    if (Array.isArray(state.dataset)) {
-      setDataset(state.dataset as DatasetItem[]);
-    }
-    if (typeof state.activeGtVersion === "string") {
-      setActiveGtVersion(state.activeGtVersion);
-    }
-    if (Array.isArray(state.gtHistory)) {
-      setGtHistory(state.gtHistory as GroundTruthHistory[]);
-    }
-    if (Array.isArray(state.activityLogs)) {
-      setActivityLogs(state.activityLogs as ActivityLog[]);
-    }
+    if (Array.isArray(state.users)) setUsers(state.users as UserProfile[]);
+    if (Array.isArray(state.submissions)) setSubmissions(state.submissions as Submission[]);
+    if (Array.isArray(state.dataset)) setDataset(state.dataset as DatasetItem[]);
+    if (typeof state.activeGtVersion === "string") setActiveGtVersion(state.activeGtVersion);
+    if (Array.isArray(state.gtHistory)) setGtHistory(state.gtHistory as GroundTruthHistory[]);
+    if (Array.isArray(state.activityLogs)) setActivityLogs(state.activityLogs as ActivityLog[]);
   }, []);
 
   const syncFromCloud = useCallback(() => {
-    const elapsed = Date.now() - lastWriteTimestampRef.current;
-    if (elapsed < WRITE_COOLDOWN_MS) {
-      return;
-    }
+    if (Date.now() - lastWriteTimestampRef.current < WRITE_COOLDOWN_MS) return;
 
-    fetch(`/api/sync?_ts=${Date.now()}`, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        Pragma: "no-cache",
-      },
-    })
-      .then((res) => res.json())
+    fetch(`/api/sync?_t=${Date.now()}`, { cache: "no-store" })
+      .then((r) => r.json())
       .then((data) => {
-        if (data && data.success && data.state) {
-          const elapsedAfterFetch = Date.now() - lastWriteTimestampRef.current;
-          if (elapsedAfterFetch < WRITE_COOLDOWN_MS) {
-            return;
-          }
+        if (!data?.success || !data.state) return;
+        if (Date.now() - lastWriteTimestampRef.current < WRITE_COOLDOWN_MS) return;
+        const serverVersion = data.version || 0;
+        if (serverVersion > cloudVersionRef.current) {
+          cloudVersionRef.current = serverVersion;
           applyCloudState(data.state);
         }
       })
-      .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
+      .catch((err) => console.error("Sync read error:", err))
       .finally(() => setIsCloudReady(true));
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
-    async (id: number): Promise<string | null> => {
-      return imageMap[id] || null;
-    },
+    async (id: number): Promise<string | null> => imageMap[id] || null,
     [imageMap]
   );
 
@@ -199,75 +180,52 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.users) setUsers(parsed.users);
-        if (parsed.currentUser) setCurrentUser(parsed.currentUser);
-        if (parsed.dataset) setDataset(parsed.dataset);
-        if (parsed.activeGtVersion) setActiveGtVersion(parsed.activeGtVersion);
-        if (parsed.submissions) setSubmissions(parsed.submissions);
-        if (parsed.gtHistory) setGtHistory(parsed.gtHistory);
-        if (parsed.activityLogs) setActivityLogs(parsed.activityLogs);
+        const p = JSON.parse(raw);
+        if (p.users) setUsers(p.users);
+        if (p.currentUser) setCurrentUser(p.currentUser);
+        if (p.dataset) setDataset(p.dataset);
+        if (p.activeGtVersion) setActiveGtVersion(p.activeGtVersion);
+        if (p.submissions) setSubmissions(p.submissions);
+        if (p.gtHistory) setGtHistory(p.gtHistory);
+        if (p.activityLogs) setActivityLogs(p.activityLogs);
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
 
-    loadImageMapFromIndexedDB().then((savedMap) => {
-      if (savedMap && Object.keys(savedMap).length > 0) {
-        setImageMap(savedMap);
-      }
+    loadImageMapFromIndexedDB().then((m) => {
+      if (m && Object.keys(m).length > 0) setImageMap(m);
     });
 
     syncFromCloud();
-
-    const intervalId = setInterval(() => {
-      syncFromCloud();
-    }, 4000);
-
+    const iv = setInterval(syncFromCloud, 4000);
     window.addEventListener("focus", syncFromCloud);
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        syncFromCloud();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener("focus", syncFromCloud);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    const hv = () => { if (document.visibilityState === "visible") syncFromCloud(); };
+    document.addEventListener("visibilitychange", hv);
+    return () => { clearInterval(iv); window.removeEventListener("focus", syncFromCloud); document.removeEventListener("visibilitychange", hv); };
   }, [syncFromCloud]);
 
-  const pushStateToCloud = useCallback((payload: Record<string, unknown>) => {
-    // Aktifkan cooldown: blokir semua pembacaan cloud selama 10 detik
+  // Mengirim SELURUH state ke cloud sebagai satu blob atomik.
+  // `overrides` berisi field yang BARU SAJA di-update (belum masuk stateRef).
+  const pushStateToCloud = useCallback((overrides?: Record<string, unknown>) => {
     lastWriteTimestampRef.current = Date.now();
+    const nextVersion = cloudVersionRef.current + 1;
+    cloudVersionRef.current = nextVersion;
 
-    const bodyStr = JSON.stringify(payload);
-
-    // Vercel serverless functions memiliki batas body 4.5MB.
-    // Jika payload terlalu besar (biasanya karena imageMap berisi base64),
-    // kirim TANPA imageMap agar data lain (submissions, dataset, dll) tetap tersimpan.
-    const MAX_BODY_BYTES = 4 * 1024 * 1024; // 4MB safety margin
-    if (bodyStr.length > MAX_BODY_BYTES && payload.imageMap) {
-      console.warn(
-        `Payload terlalu besar (${(bodyStr.length / 1024 / 1024).toFixed(1)}MB). Mengirim tanpa imageMap.`
-      );
-      const { imageMap: _removed, ...rest } = payload;
-      void _removed;
-      fetch("/api/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rest),
-      }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
-      return;
-    }
+    const s = stateRef.current;
+    const state = {
+      users: s.users,
+      submissions: s.submissions,
+      dataset: s.dataset,
+      activeGtVersion: s.activeGtVersion,
+      gtHistory: s.gtHistory,
+      activityLogs: s.activityLogs,
+      ...(overrides || {}),
+    };
 
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: bodyStr,
-    }).catch((err) => console.error("Gagal menyimpan ke database cloud:", err));
+      body: JSON.stringify({ state, version: nextVersion }),
+    }).catch((err) => console.error("Sync write error:", err));
   }, []);
 
   useEffect(() => {
@@ -713,17 +671,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [pushStateToCloud]);
 
   const resetToDefaultSeeds = useCallback(() => {
-    lastWriteTimestampRef.current = Date.now();
     const demoDataset = generateDemoDataset(120);
-    const logs = [
-      {
-        id: "log-reset",
-        timestampWIB: getFormattedWIB().full,
-        title: "Dataset Contoh Dimuat",
-        description: "120 sampel contoh telah dimuat ke dalam platform.",
-        type: "system" as const,
-      },
-    ];
+    const logs = [{ id: "log-reset", timestampWIB: getFormattedWIB().full, title: "Dataset Contoh Dimuat", description: "120 sampel contoh telah dimuat ke dalam platform.", type: "system" as const }];
     setUsers(DEFAULT_USERS);
     setCurrentUser(DEFAULT_USERS[0]);
     setDataset(demoDataset);
@@ -733,40 +682,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     setActivityLogs(logs);
     setImageMap({});
     clearImageMapIndexedDB();
-
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        users: DEFAULT_USERS,
-        submissions: [],
-        dataset: demoDataset,
-        activeGtVersion: "v1.0",
-        gtHistory: [],
-        activityLogs: logs,
-        imageMap: {},
-        reset: true,
-      }),
-    }).catch(() => {});
-
-    fetch("/api/images", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reset: true }),
-    }).catch(() => {});
-  }, []);
+    pushStateToCloud({ users: DEFAULT_USERS, submissions: [], dataset: demoDataset, activeGtVersion: "v1.0", gtHistory: [], activityLogs: logs });
+  }, [pushStateToCloud]);
 
   const resetAllProcessToZero = useCallback(() => {
-    lastWriteTimestampRef.current = Date.now();
-    const logs = [
-      {
-        id: `log-reset-zero-${Date.now()}`,
-        timestampWIB: getFormattedWIB().full,
-        title: "Reset Seluruh Data ke 0",
-        description: "Seluruh data submission, ground truth manual, dan gambar telah direset ke 0.",
-        type: "system" as const,
-      },
-    ];
+    const logs = [{ id: `log-reset-zero-${Date.now()}`, timestampWIB: getFormattedWIB().full, title: "Reset Seluruh Data ke 0", description: "Seluruh data submission, ground truth manual, dan gambar telah direset ke 0.", type: "system" as const }];
     setSubmissions([]);
     setDataset([]);
     setImageMap({});
@@ -774,32 +694,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     setGtHistory([]);
     setActivityLogs(logs);
     clearImageMapIndexedDB();
-    try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-
-    fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        submissions: [],
-        dataset: [],
-        activeGtVersion: "v1.0",
-        gtHistory: [],
-        activityLogs: logs,
-        imageMap: {},
-        reset: true,
-      }),
-    }).catch(() => {});
-
-    fetch("/api/images", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reset: true }),
-    }).catch(() => {});
-  }, []);
+    try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch { /* ignore */ }
+    pushStateToCloud({ submissions: [], dataset: [], activeGtVersion: "v1.0", gtHistory: [], activityLogs: logs });
+  }, [pushStateToCloud]);
 
   return (
     <AppStoreContext.Provider
