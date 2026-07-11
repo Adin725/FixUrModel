@@ -3,16 +3,30 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = await (prisma as any).globalState.findMany({
-      where: {
+    const { searchParams } = new URL(req.url);
+    const idsParam = searchParams.get("ids");
+
+    let whereClause: Record<string, unknown>;
+    if (idsParam) {
+      const keys = idsParam
+        .split(",")
+        .map((id) => `img_${id.trim()}`)
+        .filter(Boolean);
+      whereClause = { key: { in: keys } };
+    } else {
+      whereClause = {
         OR: [
           { key: { startsWith: "img_" } },
           { key: "imageMap" },
         ],
-      },
+      };
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await (prisma as any).globalState.findMany({
+      where: whereClause,
     });
 
     const imageMap: Record<number, string> = {};
@@ -70,19 +84,23 @@ export async function POST(req: Request) {
     let count = 0;
 
     if (images && typeof images === "object") {
-      for (const [idStr, base64] of Object.entries(images)) {
-        const numId = Number(idStr);
-        if (!isNaN(numId) && typeof base64 === "string" && base64.length > 0) {
-          const key = `img_${numId}`;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await (prisma as any).globalState.upsert({
-            where: { key },
-            update: { value: base64 },
-            create: { key, value: base64 },
-          });
-          count += 1;
-        }
-      }
+      // Eksekusi upsert secara paralel agar pengunggahan batch 10-15 gambar selesai dalam sekejap
+      const entries = Object.entries(images);
+      await Promise.all(
+        entries.map(async ([idStr, base64]) => {
+          const numId = Number(idStr);
+          if (!isNaN(numId) && typeof base64 === "string" && base64.length > 0) {
+            const key = `img_${numId}`;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (prisma as any).globalState.upsert({
+              where: { key },
+              update: { value: base64 },
+              create: { key, value: base64 },
+            });
+          }
+        })
+      );
+      count = entries.length;
     }
 
     return NextResponse.json({ success: true, count });

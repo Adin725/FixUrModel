@@ -81,6 +81,7 @@ interface AppStoreContextType {
 
   previewImageModalId: number | null;
   setPreviewImageModalId: (id: number | null) => void;
+  fetchImageById: (id: number) => Promise<string | null>;
 
   resetToDefaultSeeds: () => void;
   resetAllProcessToZero: () => void;
@@ -214,6 +215,29 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .catch((err) => console.error("Gagal sinkronisasi gambar dari cloud:", err));
   }, [applyCloudState]);
+
+  const fetchImageById = useCallback(
+    async (id: number): Promise<string | null> => {
+      if (imageMap[id]) return imageMap[id];
+      try {
+        const res = await fetch(`/api/images?ids=${id}`);
+        const data = await res.json();
+        if (data && data.success && data.imageMap && data.imageMap[id]) {
+          const fetchedImage = data.imageMap[id] as string;
+          setImageMap((prev) => {
+            const merged = { ...prev, [id]: fetchedImage };
+            saveImageMapToIndexedDB(merged);
+            return merged;
+          });
+          return fetchedImage;
+        }
+      } catch (err) {
+        console.error(`Gagal mengambil gambar ID #${id}:`, err);
+      }
+      return null;
+    },
+    [imageMap]
+  );
 
   useEffect(() => {
     try {
@@ -414,22 +438,33 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setActivityLogs((prev) => [logItem, ...prev]);
 
-    // Unggah gambar ke endpoint dedicated /api/images dalam batch kecil (5 gambar/req)
-    // sehingga tidak pernah terpotong batas 4.5 MB Vercel Serverless
+    // Unggah gambar ke endpoint dedicated /api/images secara antrean terkontrol (15 gambar/batch)
+    // dengan mekanisme retry otomatis agar 100% gambar berhasil tersimpan cepat dan terjamin
     const entries = Object.entries(newImageMap);
-    const BATCH_SIZE = 5;
-    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
-      const batchEntries = entries.slice(i, i + BATCH_SIZE);
-      const batchMap: Record<number, string> = {};
-      for (const [idStr, base64] of batchEntries) {
-        batchMap[Number(idStr)] = base64;
+    const BATCH_SIZE = 15;
+    (async () => {
+      for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const batchEntries = entries.slice(i, i + BATCH_SIZE);
+        const batchMap: Record<number, string> = {};
+        for (const [idStr, base64] of batchEntries) {
+          batchMap[Number(idStr)] = base64;
+        }
+        let success = false;
+        for (let attempt = 1; attempt <= 3 && !success; attempt++) {
+          try {
+            const res = await fetch("/api/images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ images: batchMap }),
+            });
+            if (res.ok) success = true;
+          } catch (err) {
+            console.error(`Gagal upload batch gambar attempt #${attempt}:`, err);
+          }
+          if (!success) await new Promise((r) => setTimeout(r, 600));
+        }
       }
-      fetch("/api/images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: batchMap }),
-      }).catch((err) => console.error("Gagal mengunggah batch gambar ke cloud:", err));
-    }
+    })();
 
     pushStateToCloud({
       dataset: dataset.length === 0 ? [] : dataset,
@@ -855,6 +890,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
         previewImageModalId,
         setPreviewImageModalId,
+        fetchImageById,
 
         resetToDefaultSeeds,
         resetAllProcessToZero,

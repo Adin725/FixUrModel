@@ -1,13 +1,29 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { mapClassLabelToNumeric } from "@/lib/evaluator";
-import { X, Image as ImageIcon, Database, Check } from "lucide-react";
+import { X, Image as ImageIcon, Check, Loader2 } from "lucide-react";
 
 export const ImagePreviewModal: React.FC = () => {
-  const { previewImageModalId, setPreviewImageModalId, dataset, imageMap } =
+  const { previewImageModalId, setPreviewImageModalId, dataset, imageMap, fetchImageById } =
     useAppStore();
+  const [isLoadingSingle, setIsLoadingSingle] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (previewImageModalId !== null && !imageMap[previewImageModalId]) {
+      setIsLoadingSingle(true);
+      fetchImageById(previewImageModalId).finally(() => {
+        if (mounted) setIsLoadingSingle(false);
+      });
+    } else {
+      setIsLoadingSingle(false);
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [previewImageModalId, imageMap, fetchImageById]);
 
   if (previewImageModalId === null) return null;
 
@@ -53,6 +69,16 @@ export const ImagePreviewModal: React.FC = () => {
               alt={`Gambar ID #${item.id}`}
               className="max-h-80 w-auto rounded-xl object-contain shadow-md"
             />
+          ) : isLoadingSingle ? (
+            <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 bg-white/70 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/60">
+              <Loader2 className="h-10 w-10 animate-spin text-blue-600 dark:text-blue-400" />
+              <p className="mt-3 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Memuat Gambar #{item.id} dari Cloud Database...
+              </p>
+              <p className="mt-1 text-[11px] text-zinc-400 font-mono">
+                Mengambil langsung dari server penyimpanan permanen
+              </p>
+            </div>
           ) : (
             <div className="flex h-64 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 bg-white/70 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/60">
               <ImageIcon className="h-12 w-12 text-zinc-300 dark:text-zinc-700" />
