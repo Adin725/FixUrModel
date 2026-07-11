@@ -199,21 +199,32 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       .catch((err) => console.error("Gagal sinkronisasi dari cloud:", err))
       .finally(() => setIsCloudReady(true));
 
-    fetch("/api/images")
+    // STRATEGI C: Batched Chunk Sync (Mengambil 2000+ gambar per batch 50 ID tanpa crash & tanpa CDN)
+    fetch("/api/images?checkIds=1")
       .then((res) => res.json())
-      .then((data) => {
-        if (data && data.success && data.imageMap) {
-          const cloudMap = data.imageMap as Record<number, string>;
-          if (Object.keys(cloudMap).length > 0) {
-            setImageMap((prev) => {
-              const merged = { ...prev, ...cloudMap };
-              saveImageMapToIndexedDB(merged);
-              return merged;
-            });
+      .then(async (data) => {
+        if (data && data.success && Array.isArray(data.ids)) {
+          const serverIds: number[] = data.ids;
+          const CHUNK_SIZE = 50;
+          for (let i = 0; i < serverIds.length; i += CHUNK_SIZE) {
+            const batchIds = serverIds.slice(i, i + CHUNK_SIZE);
+            try {
+              const res = await fetch(`/api/images?ids=${batchIds.join(",")}`);
+              const batchData = await res.json();
+              if (batchData && batchData.success && batchData.imageMap) {
+                setImageMap((prev) => {
+                  const merged = { ...prev, ...batchData.imageMap };
+                  saveImageMapToIndexedDB(merged);
+                  return merged;
+                });
+              }
+            } catch (err) {
+              console.error(`Gagal sinkronisasi batch gambar ${i}:`, err);
+            }
           }
         }
       })
-      .catch((err) => console.error("Gagal sinkronisasi gambar dari cloud:", err));
+      .catch((err) => console.error("Gagal cek ID gambar dari cloud:", err));
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
