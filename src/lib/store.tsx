@@ -385,8 +385,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     const newImageMap: Record<number, string> = {};
     let extractedCount = 0;
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "hrf7byic";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default";
 
     const fileEntries = Object.keys(contents.files);
     const extractedEntries: Array<{ id: number; zipEntry: JSZip.JSZipObject; mimeType: string }> = [];
