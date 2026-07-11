@@ -415,7 +415,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     if (cloudName && uploadPreset) {
       // STRATEGI A (Cloudinary CDN Enterprise Mode dengan Auto-Retry & Base64 Fallback)
       // Mengunggah ke CDN + memperbarui layar secara progresif real-time per batch
-      const CONCURRENCY = 8;
+      const CONCURRENCY = 15;
       for (let i = 0; i < extractedEntries.length; i += CONCURRENCY) {
         const batch = extractedEntries.slice(i, i + CONCURRENCY);
         const batchMap: Record<number, string> = {};
@@ -423,11 +423,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         await Promise.all(
           batch.map(async ({ id, zipEntry, mimeType }) => {
             let cdnSuccess = false;
-            for (let attempt = 1; attempt <= 3 && !cdnSuccess; attempt++) {
+            // Siapkan Data URI ber-MIME type resmi agar Cloudinary 100% menerima file dari browser
+            const base64Data = await zipEntry.async("base64");
+            const dataUri = `data:${mimeType};base64,${base64Data}`;
+
+            for (let attempt = 1; attempt <= 2 && !cdnSuccess; attempt++) {
               try {
-                const blob = await zipEntry.async("blob");
                 const formData = new FormData();
-                formData.append("file", blob, `${id}.jpg`);
+                formData.append("file", dataUri);
                 formData.append("upload_preset", uploadPreset);
                 const res = await fetch(
                   `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
@@ -439,26 +442,22 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
                   batchMap[id] = data.secure_url;
                   extractedCount += 1;
                   cdnSuccess = true;
+                } else {
+                  console.warn(`[CDN Cloudinary] ID #${id} ditolak (Attempt ${attempt}):`, data?.error?.message || res.statusText);
                 }
-              } catch {
-                // coba ulang pada attempt berikutnya
+              } catch (err) {
+                console.warn(`[CDN Cloudinary] Network error ID #${id} (Attempt ${attempt}):`, err);
               }
-              if (!cdnSuccess && attempt < 3) {
-                await new Promise((r) => setTimeout(r, 400));
+              if (!cdnSuccess && attempt < 2) {
+                await new Promise((r) => setTimeout(r, 250));
               }
             }
 
-            // Jika CDN gagal setelah 3x percobaan, gunakan fallback Base64 agar gambar dijamin 100% muncul
+            // Fallback aman jika CDN mengalami gangguan sementara
             if (!cdnSuccess) {
-              try {
-                const base64Data = await zipEntry.async("base64");
-                const fallbackUrl = `data:${mimeType};base64,${base64Data}`;
-                newImageMap[id] = fallbackUrl;
-                batchMap[id] = fallbackUrl;
-                extractedCount += 1;
-              } catch (fallbackErr) {
-                console.error(`Gagal fallback gambar ID #${id}:`, fallbackErr);
-              }
+              newImageMap[id] = dataUri;
+              batchMap[id] = dataUri;
+              extractedCount += 1;
             }
           })
         );
