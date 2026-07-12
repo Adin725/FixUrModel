@@ -7,24 +7,20 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // 1. Pre-warm ping handshake
     if (searchParams.get("ping") === "1") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (prisma as any).globalState.findFirst({ select: { key: true } });
+      await prisma.globalState.findFirst({ select: { key: true } });
       return NextResponse.json({ success: true, pong: true });
     }
 
-    // 2. Cek daftar ID yang sudah masuk di server (reconciliation check super cepat)
     if (searchParams.get("checkIds") === "1") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rows = await (prisma as any).globalState.findMany({
+      const rows = await prisma.globalState.findMany({
         where: {
           OR: [
             { key: { startsWith: "img_" } },
             { key: "imageMap" },
           ],
         },
-        select: { key: true, value: true },
+        select: { key: true },
       });
 
       const idSet = new Set<number>();
@@ -32,16 +28,6 @@ export async function GET(req: Request) {
         if (r.key.startsWith("img_")) {
           const num = Number(r.key.replace("img_", ""));
           if (!isNaN(num)) idSet.add(num);
-        } else if (r.key === "imageMap") {
-          try {
-            const parsed = JSON.parse(r.value);
-            Object.keys(parsed).forEach((k) => {
-              const num = Number(k);
-              if (!isNaN(num)) idSet.add(num);
-            });
-          } catch {
-            // ignore
-          }
         }
       }
 
@@ -57,7 +43,6 @@ export async function GET(req: Request) {
       );
     }
 
-    // 3. Pengambilan spesifik atau seluruh gambar
     const idsParam = searchParams.get("ids");
     let whereClause: Record<string, unknown>;
     if (idsParam) {
@@ -68,34 +53,19 @@ export async function GET(req: Request) {
       whereClause = { key: { in: keys } };
     } else {
       whereClause = {
-        OR: [
-          { key: { startsWith: "img_" } },
-          { key: "imageMap" },
-        ],
+        key: { startsWith: "img_" },
       };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rows = await (prisma as any).globalState.findMany({
+    const rows = await prisma.globalState.findMany({
       where: whereClause,
+      select: { key: true, value: true },
     });
 
     const imageMap: Record<number, string> = {};
 
     for (const row of rows) {
-      if (row.key === "imageMap") {
-        try {
-          const parsed = JSON.parse(row.value);
-          for (const [k, v] of Object.entries(parsed)) {
-            const numKey = Number(k);
-            if (!isNaN(numKey) && typeof v === "string") {
-              imageMap[numKey] = v;
-            }
-          }
-        } catch {
-          // abaikan jika format lama tidak valid
-        }
-      } else if (row.key.startsWith("img_")) {
+      if (row.key.startsWith("img_")) {
         const numKey = Number(row.key.replace("img_", ""));
         if (!isNaN(numKey) && typeof row.value === "string") {
           imageMap[numKey] = row.value;
@@ -107,15 +77,13 @@ export async function GET(req: Request) {
       { success: true, imageMap },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-          Pragma: "no-cache",
+          "Cache-Control": "public, max-age=31536000, immutable",
         },
       }
     );
   } catch (error) {
-    console.error("GET /api/images error:", error);
     return NextResponse.json(
-      { success: false, error: "Gagal mengambil data gambar dari cloud" },
+      { success: false, error: String(error) },
       { status: 500 }
     );
   }
@@ -126,9 +94,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     if (body.reset === true) {
-      // Hapus semua gambar dari cloud database saat reset
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (prisma as any).globalState.deleteMany({
+      await prisma.globalState.deleteMany({
         where: {
           OR: [
             { key: { startsWith: "img_" } },
@@ -143,30 +109,30 @@ export async function POST(req: Request) {
     let count = 0;
 
     if (images && typeof images === "object") {
-      // Eksekusi upsert secara paralel agar pengunggahan batch 10-15 gambar selesai dalam sekejap
       const entries = Object.entries(images);
-      await Promise.all(
-        entries.map(async ([idStr, base64]) => {
-          const numId = Number(idStr);
-          if (!isNaN(numId) && typeof base64 === "string" && base64.length > 0) {
-            const key = `img_${numId}`;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            await (prisma as any).globalState.upsert({
-              where: { key },
-              update: { value: base64 },
-              create: { key, value: base64 },
-            });
-          }
-        })
-      );
+      for (let i = 0; i < entries.length; i += 5) {
+        const batch = entries.slice(i, i + 5);
+        await Promise.all(
+          batch.map(async ([idStr, base64]) => {
+            const numId = Number(idStr);
+            if (!isNaN(numId) && typeof base64 === "string" && base64.length > 0) {
+              const key = `img_${numId}`;
+              await prisma.globalState.upsert({
+                where: { key },
+                update: { value: base64 },
+                create: { key, value: base64 },
+              });
+            }
+          })
+        );
+      }
       count = entries.length;
     }
 
     return NextResponse.json({ success: true, count });
   } catch (error) {
-    console.error("POST /api/images error:", error);
     return NextResponse.json(
-      { success: false, error: "Gagal menyimpan batch gambar ke cloud" },
+      { success: false, error: String(error) },
       { status: 500 }
     );
   }

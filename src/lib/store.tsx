@@ -134,8 +134,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const lastWriteTimestampRef = useRef(0);
   const cloudVersionRef = useRef(0);
+  const inFlightRequestsRef = useRef<Set<number>>(new Set());
 
-  // Refs untuk akses state terbaru di dalam callback tanpa dependency loop
   const stateRef = useRef({
     users: DEFAULT_USERS as UserProfile[],
     submissions: INITIAL_SUBMISSIONS as Submission[],
@@ -173,31 +173,29 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!data?.success || !Array.isArray(data.ids) || data.ids.length === 0) return;
 
       const cloudIds: number[] = data.ids;
-      // Periksa ID mana yang belum ada di memori lokal kita
       const currentMap = stateRef.current.imageMap || {};
-      const missingIds = cloudIds.filter((id) => !currentMap[id]);
+      const missingIds = cloudIds.filter(
+        (id) => !currentMap[id] && !inFlightRequestsRef.current.has(id)
+      );
 
       if (missingIds.length > 0) {
-        // Ambil batch gambar yang hilang secara efisien
-        const chunkedIds: number[][] = [];
-        for (let i = 0; i < missingIds.length; i += 20) {
-          chunkedIds.push(missingIds.slice(i, i + 20));
+        const batch = missingIds.slice(0, 15);
+        batch.forEach((id) => inFlightRequestsRef.current.add(id));
+        const imgRes = await fetch(`/api/images?ids=${batch.join(",")}`, {
+          cache: "no-store",
+        });
+        const imgData = await imgRes.json();
+        if (imgData?.success && imgData.imageMap) {
+          setImageMap((prev) => {
+            const merged = { ...prev, ...imgData.imageMap };
+            saveImageMapToIndexedDB(merged);
+            return merged;
+          });
         }
-
-        for (const chunk of chunkedIds) {
-          const imgRes = await fetch(`/api/images?ids=${chunk.join(",")}`, { cache: "no-store" });
-          const imgData = await imgRes.json();
-          if (imgData?.success && imgData.imageMap) {
-            setImageMap((prev) => {
-              const merged = { ...prev, ...imgData.imageMap };
-              saveImageMapToIndexedDB(merged);
-              return merged;
-            });
-          }
-        }
+        batch.forEach((id) => inFlightRequestsRef.current.delete(id));
       }
-    } catch (err) {
-      console.error("syncImagesFromCloud error:", err);
+    } catch {
+      // ignore
     }
   }, []);
 
@@ -215,12 +213,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
           applyCloudState(data.state);
         }
       })
-      .catch((err) => console.error("Sync read error:", err));
+      .catch(() => {});
   }, [applyCloudState]);
 
   const fetchImageById = useCallback(
     async (id: number): Promise<string | null> => {
-      if (imageMap[id]) return imageMap[id];
+      if (stateRef.current.imageMap[id]) return stateRef.current.imageMap[id];
+      if (inFlightRequestsRef.current.has(id)) return null;
+      inFlightRequestsRef.current.add(id);
       try {
         const res = await fetch(`/api/images?ids=${id}`, { cache: "no-store" });
         const data = await res.json();
@@ -231,14 +231,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
             saveImageMapToIndexedDB(merged);
             return merged;
           });
+          inFlightRequestsRef.current.delete(id);
           return fetchedImg;
         }
-      } catch (err) {
-        console.error(`fetchImageById(${id}) error:`, err);
+      } catch {
+        // ignore
       }
+      inFlightRequestsRef.current.delete(id);
       return null;
     },
-    [imageMap]
+    []
   );
 
   useEffect(() => {
@@ -283,11 +285,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [syncFromCloud, syncImagesFromCloud]);
 
-  // Mengirim SELURUH state ke cloud sebagai satu blob atomik dengan Timestamp mutlak
   const pushStateToCloud = useCallback((overrides?: Record<string, unknown>) => {
     lastWriteTimestampRef.current = Date.now();
-    const nextVersion = Date.now();
-    cloudVersionRef.current = Math.max(cloudVersionRef.current, nextVersion);
 
     const s = stateRef.current;
     const state = {
@@ -303,8 +302,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     fetch("/api/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ state, version: nextVersion }),
-    }).catch((err) => console.error("Sync write error:", err));
+      body: JSON.stringify({ state }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.success && typeof data.version === "number") {
+          cloudVersionRef.current = Math.max(cloudVersionRef.current, data.version);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -404,14 +410,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
 
-    // 1. Simpan gambar langsung ke memori lokal browser & IndexedDB secara kilat
     setImageMap((prev) => {
       const merged = { ...prev, ...newImageMap };
       saveImageMapToIndexedDB(merged);
       return merged;
     });
 
-    // 2. Unggah gambar ke cloud database (POST /api/images) agar sinkron ke seluruh device pengguna lain!
     const imageEntries = Object.entries(newImageMap);
     if (imageEntries.length > 0) {
       const chunks: Record<string, string>[] = [];
@@ -428,19 +432,21 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (count > 0) chunks.push(currentChunk);
 
-      // Unggah chunk gambar di background
-      Promise.all(
-        chunks.map((chunk) =>
-          fetch("/api/images", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ images: chunk }),
-          })
-        )
-      ).catch((err) => console.error("Upload images to cloud error:", err));
+      (async () => {
+        for (const chunk of chunks) {
+          try {
+            await fetch("/api/images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ images: chunk }),
+            });
+          } catch {
+            // ignore
+          }
+        }
+      })();
     }
 
-    // 3. Pertahankan Ground Truth yang sudah tersinkronisasi dari cloud
     const ids = Object.keys(newImageMap)
       .map(Number)
       .sort((a, b) => a - b);
@@ -471,7 +477,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setActivityLogs((prev) => {
       const nextLogs = [logItem, ...prev];
-      // SYNC LANGSUNG KE CLOUD UNTUK SEMUA DEVICE!
       pushStateToCloud({
         dataset: updatedDataset,
         activityLogs: nextLogs,
