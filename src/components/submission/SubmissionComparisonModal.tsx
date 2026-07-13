@@ -2,15 +2,7 @@
 
 import React from "react";
 import { Submission, DatasetItem } from "@/types";
-import {
-  Award,
-  TrendingUp,
-  TrendingDown,
-  X,
-  GitBranch,
-  CheckCircle2,
-  AlertCircle,
-} from "lucide-react";
+import { Award, X, GitBranch } from "lucide-react";
 
 interface SubmissionComparisonModalProps {
   isOpen: boolean;
@@ -33,10 +25,7 @@ export const SubmissionComparisonModal: React.FC<
 }) => {
   if (!isOpen || !newSubmission) return null;
 
-  // Best overall comparison metrics
   let newCorrectCount = 0;
-  let prevCorrectCount = 0;
-  let parentCorrectCount = 0;
   let fixedFromParent = 0;
   let regressedFromParent = 0;
 
@@ -45,17 +34,10 @@ export const SubmissionComparisonModal: React.FC<
     if (newPred === item.groundTruthLabel) {
       newCorrectCount += 1;
     }
-    if (previousBestSubmission) {
-      const prevPred = previousBestSubmission.predictions[item.id];
-      if (prevPred === item.groundTruthLabel) {
-        prevCorrectCount += 1;
-      }
-    }
     if (parentSubmission) {
       const parPred = parentSubmission.predictions[item.id];
       const wasCorrect = parPred === item.groundTruthLabel;
       const isCorrect = newPred === item.groundTruthLabel;
-      if (wasCorrect) parentCorrectCount += 1;
       if (!wasCorrect && isCorrect) fixedFromParent += 1;
       if (wasCorrect && !isCorrect) regressedFromParent += 1;
     }
@@ -76,7 +58,13 @@ export const SubmissionComparisonModal: React.FC<
 
     const absF1 = Math.abs(deltaParentF1).toFixed(2);
     if (deltaParentF1 > 0) {
-      return `Tujuan revisi berhasil tercapai. ${newSubmission.reasonOfRevision ? `Revisi "${newSubmission.reasonOfRevision}"` : "Revisi"} meningkatkan Macro F1 sebesar +${absF1}% dibanding parent eksperimen (${parentSubmission.name}). Sebanyak ${fixedFromParent} gambar salah menjadi benar, dan hanya ${regressedFromParent} gambar mengalami penurunan.`;
+      return `Tujuan revisi berhasil tercapai. ${
+        newSubmission.reasonOfRevision
+          ? `Revisi "${newSubmission.reasonOfRevision}"`
+          : "Revisi"
+      } meningkatkan Macro F1 sebesar +${absF1}% dibanding parent eksperimen (${
+        parentSubmission.name
+      }). Sebanyak ${fixedFromParent} gambar salah menjadi benar, dan hanya ${regressedFromParent} gambar mengalami penurunan.`;
     } else if (deltaParentF1 === 0) {
       return `Revisi memberikan hasil setara dengan parent eksperimen (${parentSubmission.name}) dengan Macro F1 yang sama persis.`;
     } else {
@@ -87,7 +75,6 @@ export const SubmissionComparisonModal: React.FC<
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200/80 pb-4 dark:border-zinc-800">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -111,9 +98,7 @@ export const SubmissionComparisonModal: React.FC<
           </button>
         </div>
 
-        {/* Side-by-Side Dual Comparison Panels */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Panel 1: Perbandingan terhadap Parent Experiment */}
           <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-950 space-y-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase text-blue-800 dark:bg-blue-950 dark:text-blue-300">
@@ -127,7 +112,9 @@ export const SubmissionComparisonModal: React.FC<
 
             <div className="space-y-1">
               <div className="text-sm font-black text-zinc-900 dark:text-white">
-                {parentSubmission ? `${newSubmission.name} vs ${parentSubmission.name}` : "Baseline Baru (Tanpa Parent)"}
+                {parentSubmission
+                  ? `${newSubmission.name} vs ${parentSubmission.name}`
+                  : "Baseline Baru (Tanpa Parent)"}
               </div>
               {newSubmission.reasonOfRevision && (
                 <p className="text-xs text-zinc-500 italic">
@@ -141,7 +128,7 @@ export const SubmissionComparisonModal: React.FC<
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-white p-3 border border-zinc-200/80 dark:border-zinc-800 dark:bg-zinc-900">
                     <span className="text-[10px] font-bold text-zinc-400 block uppercase">
-                      Macro F1 Change
+                      Perubahan Macro F1
                     </span>
                     <span
                       className={`text-lg font-black font-mono ${
@@ -155,7 +142,7 @@ export const SubmissionComparisonModal: React.FC<
 
                   <div className="rounded-xl bg-white p-3 border border-zinc-200/80 dark:border-zinc-800 dark:bg-zinc-900">
                     <span className="text-[10px] font-bold text-zinc-400 block uppercase">
-                      Akurasi Gambar
+                      Akurasi Sampel
                     </span>
                     <span className="text-sm font-black text-zinc-900 dark:text-white">
                       {newCorrectCount} / {dataset.length}
@@ -166,11 +153,15 @@ export const SubmissionComparisonModal: React.FC<
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="rounded-xl bg-emerald-50 p-3 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
                     <div className="font-bold">Salah &rarr; Benar</div>
-                    <div className="text-base font-black font-mono">+{fixedFromParent} Gambar</div>
+                    <div className="text-base font-black font-mono">
+                      +{fixedFromParent} Sampel
+                    </div>
                   </div>
                   <div className="rounded-xl bg-red-50 p-3 text-red-900 dark:bg-red-950/40 dark:text-red-300">
                     <div className="font-bold">Benar &rarr; Salah</div>
-                    <div className="text-base font-black font-mono">-{regressedFromParent} Gambar</div>
+                    <div className="text-base font-black font-mono">
+                      -{regressedFromParent} Sampel
+                    </div>
                   </div>
                 </div>
               </div>
@@ -180,13 +171,11 @@ export const SubmissionComparisonModal: React.FC<
               </div>
             )}
 
-            {/* Parent insight */}
             <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 text-xs font-medium text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-200">
               {generateParentInsight()}
             </div>
           </div>
 
-          {/* Panel 2: Perbandingan terhadap Leaderboard Terbaik */}
           <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-950 space-y-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-2.5 py-1 text-[10px] font-bold uppercase text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -194,7 +183,9 @@ export const SubmissionComparisonModal: React.FC<
                 <span>Perbandingan vs Leaderboard Terbaik</span>
               </span>
               <span className="text-xs font-bold text-zinc-500">
-                {previousBestSubmission ? previousBestSubmission.name : "Ranking #1"}
+                {previousBestSubmission
+                  ? previousBestSubmission.name
+                  : "Ranking #1"}
               </span>
             </div>
 
@@ -203,7 +194,10 @@ export const SubmissionComparisonModal: React.FC<
                 Peringkat Saat Ini: #{newSubmission.rank}
               </div>
               <p className="text-xs text-zinc-500">
-                Macro F1 Test: <strong className="text-zinc-900 dark:text-white">{(newSubmission.testMacroF1 * 100).toFixed(2)}%</strong>
+                Macro F1 Test:{" "}
+                <strong className="text-zinc-900 dark:text-white">
+                  {(newSubmission.testMacroF1 * 100).toFixed(2)}%
+                </strong>
               </p>
             </div>
 
@@ -239,14 +233,14 @@ export const SubmissionComparisonModal: React.FC<
                 </span>
               ) : (
                 <span>
-                  Model ini berada pada posisi #{newSubmission.rank} di Leaderboard secara keseluruhan.
+                  Model ini berada pada posisi #{newSubmission.rank} di
+                  Leaderboard secara keseluruhan.
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Close Button */}
         <div className="flex justify-end pt-2">
           <button
             type="button"

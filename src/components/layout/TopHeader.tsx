@@ -2,11 +2,19 @@
 
 import React, { useState } from "react";
 import { useAppStore } from "@/lib/store";
-import { RotateCcw, ShieldAlert, Download, Database, FlaskConical, Search, Sparkles } from "lucide-react";
+import {
+  RotateCcw,
+  ShieldAlert,
+  Download,
+  Database,
+  FlaskConical,
+  Search,
+} from "lucide-react";
 import { downloadLeaderboardPDF } from "@/lib/pdfExport";
 
 export const TopHeader: React.FC = () => {
-  const { activeGtVersion, dataset, submissions, resetAllProcessToZero } = useAppStore();
+  const { activeGtVersion, dataset, submissions, resetAllProcessToZero } =
+    useAppStore();
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -33,8 +41,15 @@ export const TopHeader: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        {/* Left: Search Capsule (Inspired by Bruce Wayne / XFIT KIDS Top Search Bar) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, maxWidth: "480px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flex: 1,
+            maxWidth: "480px",
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -48,7 +63,9 @@ export const TopHeader: React.FC = () => {
               boxShadow: "0 4px 14px rgba(18, 26, 68, 0.03)",
             }}
           >
-            <Search style={{ width: "16px", height: "16px", color: "#64748b" }} />
+            <Search
+              style={{ width: "16px", height: "16px", color: "#64748b" }}
+            />
             <input
               type="text"
               value={searchQuery}
@@ -67,7 +84,6 @@ export const TopHeader: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: SaaS Status Badges & Quick Action Pills */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div
             style={{
@@ -81,11 +97,20 @@ export const TopHeader: React.FC = () => {
               boxShadow: "0 2px 8px rgba(18, 26, 68, 0.03)",
             }}
           >
-            <Database style={{ width: "14px", height: "14px", color: "#2563eb" }} />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}>
-              GT: <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>{activeGtVersion}</strong>
+            <Database
+              style={{ width: "14px", height: "14px", color: "#2563eb" }}
+            />
+            <span
+              style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}
+            >
+              GT:{" "}
+              <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>
+                {activeGtVersion}
+              </strong>
             </span>
-            <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+            <span
+              style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}
+            >
               ({dataset.length} sampel)
             </span>
           </div>
@@ -102,15 +127,30 @@ export const TopHeader: React.FC = () => {
               boxShadow: "0 2px 8px rgba(18, 26, 68, 0.03)",
             }}
           >
-            <FlaskConical style={{ width: "14px", height: "14px", color: "#10b981" }} />
-            <span style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}>
-              Run: <strong style={{ fontFamily: "monospace", color: "#0f1b35" }}>{submissions.length}</strong>
+            <FlaskConical
+              style={{ width: "14px", height: "14px", color: "#10b981" }}
+            />
+            <span
+              style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}
+            >
+              Run:{" "}
+              <strong
+                style={{ fontFamily: "monospace", color: "#0f1b35" }}
+              >
+                {submissions.length}
+              </strong>
             </span>
           </div>
 
           <button
             type="button"
-            onClick={() => downloadLeaderboardPDF(submissions, activeGtVersion, dataset.length)}
+            onClick={() =>
+              downloadLeaderboardPDF(
+                submissions,
+                activeGtVersion,
+                dataset.length
+              )
+            }
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -157,7 +197,6 @@ export const TopHeader: React.FC = () => {
         </div>
       </header>
 
-      {/* Reset Confirmation Modal */}
       {isResetModalOpen && (
         <div
           style={{
@@ -183,7 +222,14 @@ export const TopHeader: React.FC = () => {
               padding: "32px",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "18px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "14px",
+                marginBottom: "18px",
+              }}
+            >
               <div
                 style={{
                   width: "48px",
@@ -195,10 +241,14 @@ export const TopHeader: React.FC = () => {
                   justifyContent: "center",
                 }}
               >
-                <ShieldAlert style={{ width: "24px", height: "24px", color: "#dc2626" }} />
+                <ShieldAlert
+                  style={{ width: "24px", height: "24px", color: "#dc2626" }}
+                />
               </div>
               <div>
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f1b35" }}>
+                <h3
+                  style={{ fontSize: "18px", fontWeight: 800, color: "#0f1b35" }}
+                >
                   Konfirmasi Reset Platform
                 </h3>
                 <p style={{ fontSize: "12.5px", color: "#64748b" }}>
@@ -207,11 +257,27 @@ export const TopHeader: React.FC = () => {
               </div>
             </div>
 
-            <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.6, marginBottom: "24px" }}>
-              Anda akan mereset seluruh data submission eksperimen dan mengembalikan versi Ground Truth ke kondisi awal (0 sampel terindeks). Platform akan kembali bersih untuk putaran eksperimen baru.
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#475569",
+                lineHeight: 1.6,
+                marginBottom: "24px",
+              }}
+            >
+              Anda akan mereset seluruh data submission eksperimen dan
+              mengembalikan versi Ground Truth ke kondisi awal (0 sampel
+              terindeks). Platform akan kembali bersih untuk putaran eksperimen
+              baru.
             </p>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+              }}
+            >
               <button
                 type="button"
                 onClick={() => setIsResetModalOpen(false)}
