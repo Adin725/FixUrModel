@@ -12,6 +12,8 @@ import {
   FileArchive,
   GitBranch,
   ArrowUpRight,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -34,33 +36,35 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 pb-12">
-      <div className="flex flex-wrap items-center justify-between gap-6 border-b border-zinc-200/80 pb-6 dark:border-zinc-800">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-            Pusat Kendali Peneliti
-          </span>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+    <div className="mx-auto max-w-7xl space-y-7 pb-14">
+      {/* Pinterest Creative Hero Bento Banner */}
+      <div className="pin-card pin-card-lavender flex flex-wrap items-center justify-between gap-6 p-7 sm:p-8">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
+            <Sparkles className="h-3 w-3" />
+            <span>Pusat Kendali Peneliti</span>
+          </div>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             Ringkasan Evaluasi &amp; Peringkat Model
           </h1>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Pantau performa submission, korelasi pseudo-test, dan riwayat
-            perubahan Ground Truth secara real-time.
+          <p className="mt-2 text-xs leading-relaxed text-zinc-600 dark:text-zinc-300 sm:text-sm">
+            Pantau performa submission, korelasi pseudo-test, dan stabilitas
+            arsitektur secara langsung dengan sinkronisasi metadata atomik.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <Link
             href="/lineage"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800 shadow-2xs transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="inline-flex items-center gap-2 rounded-2xl border border-indigo-200 bg-white px-5 py-3 text-xs font-black text-indigo-950 shadow-sm transition-transform active:scale-95 dark:border-indigo-800 dark:bg-zinc-900 dark:text-white"
           >
-            <GitBranch className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <GitBranch className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             <span>Alur Eksperimen</span>
           </Link>
 
           <Link
             href="/ground-truth"
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#4d3fa3] px-5 py-3 text-xs font-black text-white shadow-lg transition-transform active:scale-95 hover:bg-[#3e3188]"
           >
             <FileArchive className="h-4 w-4" />
             <span>Unggah Ground Truth CSV</span>
@@ -68,102 +72,103 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Colorful Bento Stat Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
-            <Trophy className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        <div className="pin-card pin-card-sky pin-card-hover p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-indigo-950/70 dark:text-indigo-200">
               Total Submission
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-sm">
+              <Trophy className="h-5 w-5" />
             </div>
-            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
-              {submissions.length}
-            </div>
-            <div className="truncate text-xs text-zinc-500">
-              Eksperimen model tersimpan
-            </div>
+          </div>
+          <div className="mt-3 font-mono text-3xl font-black text-indigo-950 dark:text-white">
+            {submissions.length}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-indigo-900/70 dark:text-indigo-300">
+            Eksperimen model tersimpan
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
-            <Users className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        <div className="pin-card pin-card-mint pin-card-hover p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-950/70 dark:text-emerald-200">
               Anggota Tim
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <Users className="h-5 w-5" />
             </div>
-            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
-              {users.length}
-            </div>
-            <div className="truncate text-xs text-zinc-500">
-              Peneliti aktif di platform
-            </div>
+          </div>
+          <div className="mt-3 font-mono text-3xl font-black text-emerald-950 dark:text-white">
+            {users.length}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-emerald-900/70 dark:text-emerald-300">
+            Peneliti aktif AI Studio
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-600 text-white shadow-sm">
-            <Database className="h-6 w-6" />
+        <div className="pin-card pin-card-lavender pin-card-hover p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-violet-950/70 dark:text-violet-200">
+              Ground Truth Versi
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
+              <Database className="h-5 w-5" />
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-              Versi Ground Truth
-            </div>
-            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
-              {activeGtVersion}
-            </div>
-            <div className="truncate text-xs text-zinc-500">
-              {dataset.length} sampel terindeks
-            </div>
+          <div className="mt-3 font-mono text-3xl font-black text-violet-950 dark:text-white">
+            {activeGtVersion}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-violet-900/70 dark:text-violet-300">
+            {dataset.length} sampel metadata terindeks
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm">
-            <Award className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+        <div className="pin-card pin-card-rose pin-card-hover p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-black uppercase tracking-wider text-rose-950/70 dark:text-rose-200">
               Skor F1 Tertinggi
+            </span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white shadow-sm">
+              <Award className="h-5 w-5" />
             </div>
-            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
-              {bestModel
-                ? `${(bestModel.testMacroF1 * 100).toFixed(1)}%`
-                : "—"}
-            </div>
-            <div className="truncate text-xs text-zinc-500">
-              {bestModel ? bestModel.name : "Belum ada eksperimen"}
-            </div>
+          </div>
+          <div className="mt-3 font-mono text-3xl font-black text-rose-950 dark:text-white">
+            {bestModel ? `${(bestModel.testMacroF1 * 100).toFixed(1)}%` : "—"}
+          </div>
+          <div className="mt-1 truncate text-xs font-semibold text-rose-900/70 dark:text-rose-300">
+            {bestModel ? bestModel.name : "Belum ada eksperimen"}
           </div>
         </div>
       </div>
 
+      {/* Analytical Core + Pinterest Showcase Banner */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <ValidationVsTestAnalysis submissions={submissions} />
         </div>
 
-        <div className="flex flex-col gap-5 lg:col-span-4">
-          <div className="flex h-full flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-col gap-6 lg:col-span-4">
+          <div className="pin-card pin-card-violet-gradient flex h-full flex-col justify-between p-6">
             <div>
-              <div className="flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
+              <div className="flex items-center justify-between border-b border-white/20 pb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                  <div className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-indigo-200">
+                    <Zap className="h-3 w-3" />
+                    <span>Top Performer</span>
+                  </div>
+                  <h3 className="mt-1 text-base font-black text-white">
                     3 Model Terbaik Teratas
                   </h3>
-                  <p className="text-xs text-zinc-500">
-                    Berdasarkan skor Macro F1
-                  </p>
                 </div>
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
-                  Top Rank
+                <span className="rounded-full bg-white/20 px-3 py-1 text-[10px] font-black text-white">
+                  Leaderboard
                 </span>
               </div>
 
               {topThree.length === 0 ? (
-                <div className="py-12 text-center text-xs text-zinc-400">
+                <div className="py-12 text-center text-xs text-indigo-200">
                   Belum ada model tersimpan. Unggah model pertama Anda.
                 </div>
               ) : (
@@ -171,19 +176,19 @@ export default function DashboardPage() {
                   {topThree.map((sub, idx) => (
                     <div
                       key={sub.id}
-                      className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50/70 p-3.5 transition-colors dark:border-zinc-800/80 dark:bg-zinc-950/50"
+                      className="flex items-center justify-between rounded-2xl bg-white/10 p-4 transition-transform hover:scale-[1.02]"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-mono text-xs font-bold text-white">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-mono text-xs font-black text-[#4d3fa3] shadow-sm">
                           #{idx + 1}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-zinc-900 dark:text-white">
+                          <div className="text-xs font-black text-white">
                             {sub.name}
                           </div>
-                          <div className="text-[11px] text-zinc-500">
+                          <div className="text-[11px] text-indigo-200">
                             {sub.modelName} &bull;{" "}
-                            <strong className="text-zinc-700 dark:text-zinc-300">
+                            <strong className="text-white">
                               {sub.leaderboardName}
                             </strong>
                           </div>
@@ -191,7 +196,7 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="text-right">
-                        <div className="font-mono text-sm font-black text-blue-600 dark:text-blue-400">
+                        <div className="font-mono text-base font-black text-white">
                           {(sub.testMacroF1 * 100).toFixed(2)}%
                         </div>
                       </div>
@@ -200,50 +205,59 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            <Link
+              href="/leaderboard"
+              className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-white py-3 text-xs font-black text-[#4d3fa3] shadow-lg transition-transform active:scale-95 hover:bg-indigo-50"
+            >
+              <span>Lihat Seluruh Peringkat</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
 
+      {/* Table + Activity Bento Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+          <div className="pin-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
               <div>
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                <h3 className="text-base font-black text-zinc-900 dark:text-white">
                   Daftar Peringkat Model Terkini
                 </h3>
                 <p className="text-xs text-zinc-500">
-                  5 model terbaru yang dievaluasi sistem
+                  Diurutkan berdasarkan skor pengujian tertinggi
                 </p>
               </div>
               <Link
                 href="/leaderboard"
-                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3.5 py-1.5 text-xs font-black text-indigo-600 transition-colors hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-400"
               >
-                <span>Lihat Semua</span>
+                <span>Lihat Leaderboard</span>
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
+              <table className="pin-table">
                 <thead>
-                  <tr className="border-b border-zinc-100 bg-zinc-50 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                    <th className="p-3.5">Rank</th>
-                    <th className="p-3.5">Nama Submission</th>
-                    <th className="p-3.5">Peneliti</th>
-                    <th className="p-3.5">Arsitektur</th>
-                    <th className="p-3.5 text-right">Val F1</th>
-                    <th className="p-3.5 text-right">Test F1</th>
-                    <th className="p-3.5 text-right">Gen. Gap</th>
+                  <tr>
+                    <th className="p-4">Rank</th>
+                    <th className="p-4">Nama Submission</th>
+                    <th className="p-4">Peneliti</th>
+                    <th className="p-4">Arsitektur</th>
+                    <th className="p-4 text-right">Val F1</th>
+                    <th className="p-4 text-right">Test F1</th>
+                    <th className="p-4 text-right">Gen. Gap</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <tbody>
                   {topFive.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7}
-                        className="py-12 text-center text-zinc-400"
+                        className="py-14 text-center text-zinc-400"
                       >
                         Belum ada submission tercatat.
                       </td>
@@ -255,38 +269,35 @@ export default function DashboardPage() {
                           ? "text-emerald-600 dark:text-emerald-400"
                           : sub.generalizationGap >= -0.03
                           ? "text-amber-600 dark:text-amber-400"
-                          : "text-red-600 dark:text-red-400";
+                          : "text-rose-600 dark:text-rose-400";
 
                       return (
-                        <tr
-                          key={sub.id}
-                          className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                        >
-                          <td className="p-3.5 font-bold text-zinc-400">
+                        <tr key={sub.id}>
+                          <td className="p-4 font-black text-zinc-400">
                             #{idx + 1}
                           </td>
-                          <td className="p-3.5 font-bold text-zinc-900 dark:text-white">
+                          <td className="p-4 font-black text-zinc-900 dark:text-white">
                             {sub.name}
                             {sub.isOfficial && (
-                              <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                              <span className="ml-2 rounded-full bg-indigo-100 px-2.5 py-0.5 text-[9px] font-black text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
                                 Official Slot #{sub.officialSlot || 1}
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 font-medium text-zinc-600 dark:text-zinc-300">
+                          <td className="p-4 font-semibold text-zinc-700 dark:text-zinc-300">
                             {sub.leaderboardName}
                           </td>
-                          <td className="p-3.5 text-zinc-500 dark:text-zinc-400">
+                          <td className="p-4 text-zinc-500 dark:text-zinc-400">
                             {sub.modelName}
                           </td>
-                          <td className="p-3.5 text-right font-mono text-zinc-500">
+                          <td className="p-4 text-right font-mono font-semibold text-zinc-500">
                             {(sub.validationMacroF1 * 100).toFixed(2)}%
                           </td>
-                          <td className="p-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          <td className="p-4 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">
                             {(sub.testMacroF1 * 100).toFixed(2)}%
                           </td>
                           <td
-                            className={`p-3.5 text-right font-mono font-bold ${gapColor}`}
+                            className={`p-4 text-right font-mono font-black ${gapColor}`}
                           >
                             {sub.generalizationGap > 0 ? "+" : ""}
                             {(sub.generalizationGap * 100).toFixed(2)}%
@@ -302,31 +313,33 @@ export default function DashboardPage() {
         </div>
 
         <div className="lg:col-span-4">
-          <div className="h-full rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-              Log Aktivitas Terakhir
-            </h3>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              Riwayat perubahan sistem dan dataset
-            </p>
+          <div className="pin-card flex h-full flex-col justify-between p-6">
+            <div>
+              <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                Log Aktivitas Terakhir
+              </h3>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Riwayat pembaruan sistem &amp; dataset
+              </p>
 
-            <div className="mt-4 space-y-3">
-              {activityLogs.slice(0, 4).map((log) => (
-                <div
-                  key={log.id}
-                  className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800/80 dark:bg-zinc-950/40"
-                >
-                  <div className="flex items-center justify-between text-xs font-bold text-zinc-900 dark:text-white">
-                    <span>{log.title}</span>
-                    <span className="font-mono text-[10px] font-normal text-zinc-400">
-                      {log.timestampWIB}
-                    </span>
+              <div className="mt-5 space-y-3">
+                {activityLogs.slice(0, 4).map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/60"
+                  >
+                    <div className="flex items-center justify-between text-xs font-black text-zinc-900 dark:text-white">
+                      <span>{log.title}</span>
+                      <span className="font-mono text-[10px] font-normal text-zinc-400">
+                        {log.timestampWIB}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                      {log.description}
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                    {log.description}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>

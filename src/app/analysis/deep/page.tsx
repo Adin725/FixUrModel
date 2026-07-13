@@ -5,13 +5,12 @@ import Link from "next/link";
 import { ClassLabel } from "@/types";
 import { useAppStore } from "@/lib/store";
 import { computeItemAgreement } from "@/lib/evaluator";
-import { ItemThumbnail } from "@/components/ui/ItemThumbnail";
 import {
-  Sparkles,
   ArrowLeft,
   Save,
   CheckCircle,
   AlertTriangle,
+  Hash,
 } from "lucide-react";
 
 export default function DeepAnalysisPage() {
@@ -53,7 +52,7 @@ export default function DeepAnalysisPage() {
     updateSingleGroundTruthLabel(
       itemId,
       newLabel,
-      `Analisis Mendalam: Koreksi manual label pada gambar ID #${itemId} menjadi ${newLabel}`
+      `Koreksi label pada sampel ID #${itemId} menjadi ${newLabel}`
     );
     setSavedRowId(itemId);
     setTimeout(() => {
@@ -61,75 +60,65 @@ export default function DeepAnalysisPage() {
     }, 2000);
   };
 
-  const getAgreementBadgeStyle = (agr: number) => {
+  const getAgreementBadge = (agr: number) => {
     if (agr < 60) {
-      return "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300";
+      return "bg-rose-600 text-white";
     }
-    return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300";
+    return "bg-amber-500 text-white";
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 pb-6 dark:border-zinc-800">
+    <div className="mx-auto max-w-7xl space-y-7 pb-14">
+      {/* Hero Banner Bento */}
+      <div className="pin-card pin-card-rose flex flex-wrap items-center justify-between gap-6 p-7">
         <div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/analysis"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Kembali ke Analisis Lengkap</span>
-            </Link>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
-            Analisis Mendalam Ground Truth (Kasus Sulit)
+          <Link
+            href="/analysis"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:underline dark:text-rose-400"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Kembali ke Analisis Keseluruhan</span>
+          </Link>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+            Investigasi Kasus Sulit &amp; Ambiguitas Model
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-zinc-500">
-            Hanya menampilkan gambar dengan Agreement &lt; 100%, diurutkan dari
-            Agreement terendah menuju tertinggi
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+            Menyorot sampel dengan kesepakatan prediksi &lt; 100% untuk
+            pemeriksaan kalibrasi Ground Truth secara langsung.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-50/70 px-4 py-2.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
+        <div className="flex items-center gap-2.5 rounded-2xl bg-white/80 px-4 py-3 text-xs font-black text-rose-800 shadow-sm dark:bg-zinc-900 dark:text-rose-300">
+          <AlertTriangle className="h-5 w-5 text-rose-600" />
           <span>
-            Ditemukan <strong>{difficultItems.length}</strong> gambar ambigu!
-            yok guys kita cek bareng!
+            Terdeteksi {difficultItems.length} Sampel Ambigu
           </span>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="pin-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-zinc-200 bg-zinc-50 uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+          <table className="pin-table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-semibold">Preview Gambar</th>
-                <th className="px-4 py-3 font-semibold">ID</th>
-                <th className="px-4 py-3 font-semibold">
-                  Ground Truth (Tinjau Ulang)
-                </th>
+                <th className="w-24">ID Sampel</th>
+                <th>Ground Truth (Tinjau &amp; Simpan)</th>
                 {submissions.map((sub) => (
-                  <th
-                    key={sub.id}
-                    className="px-4 py-3 font-semibold text-blue-600 dark:text-blue-400"
-                  >
+                  <th key={sub.id} className="text-indigo-600 dark:text-indigo-400">
                     {sub.name}
                   </th>
                 ))}
-                <th className="px-4 py-3 font-semibold text-right">
-                  Agreement (Terendah)
-                </th>
+                <th className="text-right">Agreement</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <tbody>
               {difficultItems.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={submissions.length + 4}
-                    className="px-4 py-12 text-center text-zinc-500"
+                    colSpan={submissions.length + 3}
+                    className="py-14 text-center text-xs font-semibold text-zinc-400"
                   >
-                    Luar biasa! Seluruh prediksi model mencapai 100% agreement
+                    Seluruh prediksi submission mencapai kesepakatan 100%
                     dengan Ground Truth.
                   </td>
                 </tr>
@@ -144,23 +133,21 @@ export default function DeepAnalysisPage() {
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40"
+                      className={
+                        isModified
+                          ? "bg-amber-50/70 dark:bg-amber-950/20"
+                          : ""
+                      }
                     >
-                      <td className="px-4 py-3">
-                        <ItemThumbnail
-                          id={item.id}
-                          imageNumber={item.imageNumber}
-                          label={item.groundTruthLabel}
-                          size="sm"
-                        />
+                      <td className="font-mono font-black text-zinc-900 dark:text-white">
+                        <div className="flex items-center gap-1.5">
+                          <Hash className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>#{item.id}</span>
+                        </div>
                       </td>
 
-                      <td className="px-4 py-3 font-mono font-bold text-zinc-900 dark:text-white">
-                        #{item.id}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                      <td>
+                        <div className="flex items-center gap-2.5">
                           <select
                             value={currentLabel}
                             onChange={(e) =>
@@ -169,28 +156,32 @@ export default function DeepAnalysisPage() {
                                 [item.id]: e.target.value as ClassLabel,
                               })
                             }
-                            className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-800 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
+                            className={`rounded-xl px-3 py-1.5 text-xs font-bold outline-none transition-colors ${
+                              isModified
+                                ? "border-2 border-amber-500 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                                : "border border-zinc-200 bg-zinc-50 text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                            }`}
                           >
-                            <option value="Recyclable">Recyclable</option>
-                            <option value="Electronic">Electronic</option>
-                            <option value="Organic">Organic</option>
+                            <option value="Recyclable">0 — Recyclable</option>
+                            <option value="Electronic">1 — Electronic</option>
+                            <option value="Organic">2 — Organic</option>
                           </select>
 
                           {isModified && (
                             <button
                               type="button"
                               onClick={() => handleSaveLabel(item.id)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700"
+                              className="inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-black text-white shadow-sm hover:bg-indigo-700"
                             >
                               <Save className="h-3.5 w-3.5" />
-                              <span>Save</span>
+                              <span>Simpan</span>
                             </button>
                           )}
 
                           {isRecentlySaved && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-1 text-xs font-black text-emerald-600 dark:text-emerald-400">
                               <CheckCircle className="h-3.5 w-3.5" />
-                              Tersimpan!
+                              Tersimpan
                             </span>
                           )}
                         </div>
@@ -203,19 +194,20 @@ export default function DeepAnalysisPage() {
                         return (
                           <td
                             key={sub.id}
-                            className={`px-4 py-3 font-medium ${matchesGT
-                                ? "text-zinc-800 dark:text-zinc-200"
-                                : "font-bold text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20"
-                              }`}
+                            className={`font-semibold ${
+                              matchesGT
+                                ? "text-zinc-600 dark:text-zinc-300"
+                                : "font-black text-rose-600 dark:text-rose-400"
+                            }`}
                           >
                             {pred}
                           </td>
                         );
                       })}
 
-                      <td className="px-4 py-3 text-right font-mono font-bold">
+                      <td className="text-right">
                         <span
-                          className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold ${getAgreementBadgeStyle(
+                          className={`inline-block rounded-xl px-3 py-1 font-mono text-xs font-black ${getAgreementBadge(
                             item.agreement
                           )}`}
                         >
