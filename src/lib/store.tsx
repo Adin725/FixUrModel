@@ -18,11 +18,7 @@ import {
   ActivityLog,
 } from "@/types";
 import { evaluatePredictions, computeAutomaticTags } from "./evaluator";
-import {
-  saveImageMapToIndexedDB,
-  loadImageMapFromIndexedDB,
-  clearImageMapIndexedDB,
-} from "./imageStorage";
+import { telemetry } from "./telemetry";
 import {
   DEFAULT_USERS,
   INITIAL_DATASET,
@@ -53,7 +49,6 @@ interface AppStoreContextType {
 
   dataset: DatasetItem[];
   activeGtVersion: string;
-  imageMap: Record<number, string>;
   uploadTestZip: (file: File) => Promise<number>;
   updateGroundTruthDataset: (
     newDataset: DatasetItem[],
@@ -81,7 +76,6 @@ interface AppStoreContextType {
 
   previewImageModalId: number | null;
   setPreviewImageModalId: (id: number | null) => void;
-  fetchImageById: (id: number) => Promise<string | null>;
 
   resetToDefaultSeeds: () => void;
   resetAllProcessToZero: () => void;
@@ -91,7 +85,7 @@ const AppStoreContext = createContext<AppStoreContextType | undefined>(
   undefined
 );
 
-const LOCAL_STORAGE_KEY = "cv_dsp_store_state_v2";
+const LOCAL_STORAGE_KEY = "cv_dsp_store_state_v3";
 
 function getFormattedWIB(): { dateWIB: string; timeWIB: string; full: string } {
   const now = new Date();
@@ -127,14 +121,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(
     INITIAL_ACTIVITY_LOGS
   );
-  const [imageMap, setImageMap] = useState<Record<number, string>>({});
   const [previewImageModalId, setPreviewImageModalId] = useState<number | null>(
     null
   );
 
   const lastWriteTimestampRef = useRef(0);
   const cloudVersionRef = useRef(0);
-  const inFlightRequestsRef = useRef<Set<number>>(new Set());
 
   const stateRef = useRef({
     users: DEFAULT_USERS as UserProfile[],
@@ -143,8 +135,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     activeGtVersion: "v1.0",
     gtHistory: INITIAL_GT_HISTORY as GroundTruthHistory[],
     activityLogs: INITIAL_ACTIVITY_LOGS as ActivityLog[],
-    imageMap: {} as Record<number, string>,
   });
+
   useEffect(() => {
     stateRef.current = {
       users,
@@ -153,9 +145,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       activeGtVersion,
       gtHistory,
       activityLogs,
-      imageMap,
     };
-  }, [users, submissions, dataset, activeGtVersion, gtHistory, activityLogs, imageMap]);
+  }, [users, submissions, dataset, activeGtVersion, gtHistory, activityLogs]);
 
   const applyCloudState = useCallback((state: Record<string, unknown>) => {
     if (Array.isArray(state.users)) setUsers(state.users as UserProfile[]);
@@ -166,82 +157,34 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     if (Array.isArray(state.activityLogs)) setActivityLogs(state.activityLogs as ActivityLog[]);
   }, []);
 
-  const syncImagesFromCloud = useCallback(async () => {
-    try {
-      const res = await fetch("/api/images?checkIds=1", { cache: "no-store" });
-      const data = await res.json();
-      if (!data?.success || !Array.isArray(data.ids) || data.ids.length === 0) return;
-
-      const cloudIds: number[] = data.ids;
-      const currentMap = stateRef.current.imageMap || {};
-      const missingIds = cloudIds.filter(
-        (id) => !currentMap[id] && !inFlightRequestsRef.current.has(id)
-      );
-
-      if (missingIds.length > 0) {
-        const batch = missingIds.slice(0, 15);
-        batch.forEach((id) => inFlightRequestsRef.current.add(id));
-        const imgRes = await fetch(`/api/images?ids=${batch.join(",")}`, {
-          cache: "no-store",
-        });
-        const imgData = await imgRes.json();
-        if (imgData?.success && imgData.imageMap) {
-          setImageMap((prev) => {
-            const merged = { ...prev, ...imgData.imageMap };
-            saveImageMapToIndexedDB(merged);
-            return merged;
-          });
-        }
-        batch.forEach((id) => inFlightRequestsRef.current.delete(id));
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const syncFromCloud = useCallback(() => {
     if (Date.now() - lastWriteTimestampRef.current < 1200) return;
 
+    telemetry.updateMetrics({ cloudSyncStatus: "SYNCING" });
     fetch(`/api/sync?_t=${Date.now()}`, { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
-        if (!data?.success || !data.state) return;
+        if (!data?.success || !data.state) {
+          telemetry.updateMetrics({ cloudSyncStatus: "IDLE" });
+          return;
+        }
         if (Date.now() - lastWriteTimestampRef.current < 1200) return;
         const serverVersion = data.version || 0;
         if (serverVersion > cloudVersionRef.current) {
           cloudVersionRef.current = serverVersion;
           applyCloudState(data.state);
+          telemetry.updateMetrics({
+            cloudSyncStatus: "SYNCED",
+            cloudVersion: serverVersion,
+          });
+        } else {
+          telemetry.updateMetrics({ cloudSyncStatus: "IDLE" });
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        telemetry.updateMetrics({ cloudSyncStatus: "ERROR" });
+      });
   }, [applyCloudState]);
-
-  const fetchImageById = useCallback(
-    async (id: number): Promise<string | null> => {
-      if (stateRef.current.imageMap[id]) return stateRef.current.imageMap[id];
-      if (inFlightRequestsRef.current.has(id)) return null;
-      inFlightRequestsRef.current.add(id);
-      try {
-        const res = await fetch(`/api/images?ids=${id}`, { cache: "no-store" });
-        const data = await res.json();
-        if (data?.success && data.imageMap && data.imageMap[id]) {
-          const fetchedImg = data.imageMap[id];
-          setImageMap((prev) => {
-            const merged = { ...prev, [id]: fetchedImg };
-            saveImageMapToIndexedDB(merged);
-            return merged;
-          });
-          inFlightRequestsRef.current.delete(id);
-          return fetchedImg;
-        }
-      } catch {
-        // ignore
-      }
-      inFlightRequestsRef.current.delete(id);
-      return null;
-    },
-    []
-  );
 
   useEffect(() => {
     try {
@@ -258,22 +201,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch { /* ignore */ }
 
-    loadImageMapFromIndexedDB().then((m) => {
-      if (m && Object.keys(m).length > 0) setImageMap(m);
-    });
-
     syncFromCloud();
-    syncImagesFromCloud();
 
     const iv = setInterval(() => {
       syncFromCloud();
-      syncImagesFromCloud();
-    }, 2500);
+    }, 1500);
 
     const hv = () => {
       if (document.visibilityState === "visible") {
         syncFromCloud();
-        syncImagesFromCloud();
       }
     };
     window.addEventListener("focus", hv);
@@ -283,7 +219,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener("focus", hv);
       document.removeEventListener("visibilitychange", hv);
     };
-  }, [syncFromCloud, syncImagesFromCloud]);
+  }, [syncFromCloud]);
 
   const pushStateToCloud = useCallback((overrides?: Record<string, unknown>) => {
     lastWriteTimestampRef.current = Date.now();
@@ -381,10 +317,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const uploadTestZip = useCallback(async (file: File): Promise<number> => {
+    const startTime = Date.now();
+    telemetry.logTrace({
+      stage: "ZIP_SELECT",
+      count: 1,
+      successCount: 1,
+      failedCount: 0,
+      durationMs: 0,
+      status: "INFO",
+      message: `Memeriksa berkas ZIP Dataset: ${file.name} (${Math.round(file.size / 1024)} KB)`,
+    });
+
     const zip = new JSZip();
     const contents = await zip.loadAsync(file);
-    const newImageMap: Record<number, string> = {};
-    let extractedCount = 0;
+    const idSet = new Set<number>();
 
     const fileEntries = Object.keys(contents.files);
     for (const relativePath of fileEntries) {
@@ -396,60 +342,25 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
       if (match) {
         const id = parseInt(match[1], 10);
         if (!isNaN(id)) {
-          const base64Data = await zipEntry.async("base64");
-          const ext = match[2].toLowerCase();
-          const mimeType =
-            ext === "png"
-              ? "image/png"
-              : ext === "webp"
-              ? "image/webp"
-              : "image/jpeg";
-          newImageMap[id] = `data:${mimeType};base64,${base64Data}`;
-          extractedCount += 1;
+          idSet.add(id);
         }
       }
     }
 
-    setImageMap((prev) => {
-      const merged = { ...prev, ...newImageMap };
-      saveImageMapToIndexedDB(merged);
-      return merged;
+    const ids = Array.from(idSet).sort((a, b) => a - b);
+    const extractedCount = ids.length;
+
+    const extractionDurationMs = Date.now() - startTime;
+    telemetry.updateMetrics({ zipExtractedCount: extractedCount });
+    telemetry.logTrace({
+      stage: "ZIP_EXTRACT_COMPLETED",
+      count: extractedCount,
+      successCount: extractedCount,
+      failedCount: 0,
+      durationMs: extractionDurationMs,
+      status: "SUCCESS",
+      message: `Inisialisasi metadata selesai: ${extractedCount} ID sampel terdeteksi dalam ${extractionDurationMs}ms.`,
     });
-
-    const imageEntries = Object.entries(newImageMap);
-    if (imageEntries.length > 0) {
-      const chunks: Record<string, string>[] = [];
-      let currentChunk: Record<string, string> = {};
-      let count = 0;
-      for (const [k, v] of imageEntries) {
-        currentChunk[k] = v;
-        count++;
-        if (count >= 15) {
-          chunks.push(currentChunk);
-          currentChunk = {};
-          count = 0;
-        }
-      }
-      if (count > 0) chunks.push(currentChunk);
-
-      (async () => {
-        for (const chunk of chunks) {
-          try {
-            await fetch("/api/images", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ images: chunk }),
-            });
-          } catch {
-            // ignore
-          }
-        }
-      })();
-    }
-
-    const ids = Object.keys(newImageMap)
-      .map(Number)
-      .sort((a, b) => a - b);
 
     const existingGtLabelMap: Record<number, ClassLabel> = {};
     for (const item of dataset) {
@@ -470,8 +381,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     const logItem = {
       id: `log-zip-${Date.now()}`,
       timestampWIB: full,
-      title: "ZIP Gambar Test Diunggah & Disinkronkan ke Cloud",
-      description: `Berhasil mengekstrak ${extractedCount} gambar dan mensinkronkan seluruh dataset ke semua device pengguna.`,
+      title: "Daftar Sampel Dataset Diinisialisasi",
+      description: `Berhasil mendaftarkan ${extractedCount} sampel ID dataset dan mensinkronkan metadata ke semua device pengguna.`,
       type: "system" as const,
     };
 
@@ -539,7 +450,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
         ? currentUser.leaderboardName
         : "System";
 
-      // Pre-compute old vs new impact across submissions
       const oldSubmissions = [...submissions];
       const prevAvgMacroF1 =
         oldSubmissions.length > 0
@@ -633,7 +543,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
       recomputeAllSubmissions(newDataset);
     },
-    [activeGtVersion, currentUser, pushStateToCloud, recomputeAllSubmissions, submissions]
+    [activeGtVersion, currentUser, pushStateToCloud, recomputeAllSubmissions, submissions, gtHistory, activityLogs]
   );
 
   const updateSingleGroundTruthLabel = useCallback(
@@ -716,7 +626,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return newSub;
     },
-    [dataset, pushStateToCloud]
+    [dataset, pushStateToCloud, activityLogs]
   );
 
   const deleteSubmission = useCallback((id: string) => {
@@ -794,20 +704,16 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
     setSubmissions([]);
     setGtHistory([]);
     setActivityLogs(logs);
-    setImageMap({});
-    clearImageMapIndexedDB();
     pushStateToCloud({ users: DEFAULT_USERS, submissions: [], dataset: demoDataset, activeGtVersion: "v1.0", gtHistory: [], activityLogs: logs });
   }, [pushStateToCloud]);
 
   const resetAllProcessToZero = useCallback(() => {
-    const logs = [{ id: `log-reset-zero-${Date.now()}`, timestampWIB: getFormattedWIB().full, title: "Reset Seluruh Data ke 0", description: "Seluruh data submission, ground truth manual, dan gambar telah direset ke 0.", type: "system" as const }];
+    const logs = [{ id: `log-reset-zero-${Date.now()}`, timestampWIB: getFormattedWIB().full, title: "Reset Seluruh Data ke 0", description: "Seluruh data submission dan ground truth telah direset ke 0.", type: "system" as const }];
     setSubmissions([]);
     setDataset([]);
-    setImageMap({});
     setActiveGtVersion("v1.0");
     setGtHistory([]);
     setActivityLogs(logs);
-    clearImageMapIndexedDB();
     try { localStorage.removeItem(LOCAL_STORAGE_KEY); } catch { /* ignore */ }
     pushStateToCloud({ submissions: [], dataset: [], activeGtVersion: "v1.0", gtHistory: [], activityLogs: logs });
   }, [pushStateToCloud]);
@@ -824,7 +730,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
         dataset,
         activeGtVersion,
-        imageMap,
         uploadTestZip,
         updateGroundTruthDataset,
         updateSingleGroundTruthLabel,
@@ -842,7 +747,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
         previewImageModalId,
         setPreviewImageModalId,
-        fetchImageById,
 
         resetToDefaultSeeds,
         resetAllProcessToZero,

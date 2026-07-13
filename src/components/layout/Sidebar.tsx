@@ -39,6 +39,7 @@ export const Sidebar: React.FC = () => {
     { name: "Perkembangan", href: "/progression", icon: TrendingUp },
     { name: "Perbandingan", href: "/compare", icon: GitCompare },
     { name: "Riwayat Perubahan", href: "/history", icon: History },
+    { name: "Debug SRE", href: "/debug", icon: Cpu, badge: "Live" },
   ];
 
   const userInitial = currentUser ? currentUser.leaderboardName.charAt(0).toUpperCase() : "R";

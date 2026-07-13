@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { ClassLabel } from "@/types";
-import { useAppStore } from "@/lib/store";
 import { mapClassLabelToNumeric } from "@/lib/evaluator";
-import { Image as ImageIcon } from "lucide-react";
+import { Hash } from "lucide-react";
 
 interface ItemThumbnailProps {
   id: number;
@@ -19,49 +18,38 @@ export const ItemThumbnail: React.FC<ItemThumbnailProps> = ({
   label,
   size = "md",
 }) => {
-  const { imageMap, setPreviewImageModalId, fetchImageById } = useAppStore();
-  const realImage = imageMap[id];
   const numericCode = mapClassLabelToNumeric(label);
 
-  useEffect(() => {
-    if (!realImage) {
-      fetchImageById(id);
-    }
-  }, [id, realImage, fetchImageById]);
-
   const sizeClasses = {
-    sm: "h-11 w-11",
-    md: "h-14 w-14",
-    lg: "h-20 w-20",
+    sm: "h-11 px-2.5 text-[11px]",
+    md: "h-13 px-3.5 text-xs",
+    lg: "h-16 px-4 text-sm",
   }[size];
 
-  return (
-    <button
-      type="button"
-      onClick={() => setPreviewImageModalId(id)}
-      className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-100 hover:border-blue-500 hover:shadow-sm transition-all dark:border-zinc-800 dark:bg-zinc-900 ${sizeClasses}`}
-      title={`Klik untuk lihat preview asli Gambar #${id} (${imageNumber}.jpg) - Label: Angka ${numericCode} (${label})`}
-    >
-      {realImage ? (
-        <img
-          src={realImage}
-          alt={`#${id}`}
-          loading="lazy"
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-        />
-      ) : (
-        <div className="flex flex-col items-center justify-center text-zinc-500">
-          <ImageIcon className="h-4 w-4 text-zinc-400 group-hover:text-blue-500 transition-colors" />
-          <span className="mt-0.5 text-[10px] font-mono font-bold">
-            #{id}
-          </span>
-        </div>
-      )}
+  const badgeColor =
+    numericCode === 0
+      ? "bg-emerald-600 text-white border-emerald-500/30"
+      : numericCode === 1
+      ? "bg-amber-600 text-white border-amber-500/30"
+      : "bg-red-600 text-white border-red-500/30";
 
-      <div className="absolute bottom-0 right-0 rounded-tl-md bg-black/75 px-1 py-0.2 text-[9px] font-mono font-bold text-white">
-        {numericCode}
+  return (
+    <div
+      className={`group relative flex items-center justify-between gap-2 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-100/90 dark:border-zinc-800 dark:bg-zinc-900/90 ${sizeClasses}`}
+      title={`Sampel ID #${id} (${imageNumber}.jpg) - Ground Truth: Angka ${numericCode} (${label})`}
+    >
+      <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-200">
+        <Hash className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500 flex-shrink-0" />
+        <span className="font-mono font-bold tracking-tight">
+          {id}
+        </span>
       </div>
-    </button>
+
+      <div
+        className={`rounded-md px-1.5 py-0.5 text-[10px] font-mono font-bold shadow-xs ${badgeColor}`}
+      >
+        GT: {numericCode}
+      </div>
+    </div>
   );
 };
-

@@ -6,9 +6,7 @@ Kabar baiknya: **Anda TIDAK PERLU mengunduh atau menginstal program PostgreSQL d
 Untuk aplikasi modern berbasis Next.js, standar profesional terbaik adalah menggunakan **Database PostgreSQL Cloud Gratis** (seperti **Neon.tech** atau **Supabase**) sehingga database Anda langsung online 24 jam sehari dan siap diakses oleh aplikasi saat di-deploy ke **Vercel**.
 
 ---
-
 ## Alur Singkat Deployment (3 Tahap Utama)
-
 ```
 [Tahap 1: Database Cloud] ---> [Tahap 2: Hubungkan ke Laptop] ---> [Tahap 3: Deploy ke Vercel]
   Daftar akun gratis di           Masukkan URL Database ke          Hubungkan GitHub &
