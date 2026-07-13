@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { Submission } from "@/types";
 import {
-  GitCommit,
-  ArrowRight,
   Target,
-  GitBranch,
+  ArrowRight,
+  GitCommit,
   Sparkles,
 } from "lucide-react";
 
@@ -23,11 +22,9 @@ export default function ExperimentLineagePage() {
     submissions.length > 0 ? submissions[0].id : null
   );
 
-  const treeRoots = useMemo(() => {
+  const buildTree = (): TreeNode[] => {
     const map = new Map<string, TreeNode>();
-    submissions.forEach((s) => {
-      map.set(s.id, { submission: s, children: [] });
-    });
+    submissions.forEach((s) => map.set(s.id, { submission: s, children: [] }));
 
     const roots: TreeNode[] = [];
     submissions.forEach((s) => {
@@ -38,14 +35,11 @@ export default function ExperimentLineagePage() {
         roots.push(node);
       }
     });
-
     return roots;
-  }, [submissions]);
+  };
 
-  const selectedSub = useMemo(() => {
-    if (!selectedSubId) return null;
-    return submissions.find((s) => s.id === selectedSubId) || null;
-  }, [selectedSubId, submissions]);
+  const treeRoots = buildTree();
+  const selectedSub = submissions.find((s) => s.id === selectedSubId) || null;
 
   const renderTreeNode = (node: TreeNode, depth = 0) => {
     const { submission: sub, children } = node;
@@ -63,7 +57,7 @@ export default function ExperimentLineagePage() {
           onClick={() => setSelectedSubId(sub.id)}
           className={`pin-card cursor-pointer p-5 transition-all ${
             isSelected
-              ? "border-[#4d3fa3] bg-[#4d3fa3] text-white shadow-xl dark:border-indigo-500 dark:bg-indigo-600"
+              ? "pin-card-selected"
               : "pin-card-hover bg-white dark:bg-zinc-900"
           }`}
           style={{ marginLeft: `${depth * 28}px` }}
@@ -81,8 +75,14 @@ export default function ExperimentLineagePage() {
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black tracking-tight">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={`text-sm font-black tracking-tight ${
+                      isSelected
+                        ? "text-white"
+                        : "text-zinc-900 dark:text-white"
+                    }`}
+                  >
                     {sub.name}
                   </span>
                   {sub.isOfficial && (
@@ -116,15 +116,23 @@ export default function ExperimentLineagePage() {
                       {deltaParent.toFixed(2)}%
                     </span>
                   )}
-                  <span className="font-mono text-base font-black">
+                  <span
+                    className={`font-mono text-base font-black ${
+                      isSelected
+                        ? "text-white"
+                        : "text-zinc-900 dark:text-white"
+                    }`}
+                  >
                     {(sub.testMacroF1 * 100).toFixed(2)}%
                   </span>
                 </div>
               </div>
 
               <div
-                className={`mt-1 text-xs font-medium ${
-                  isSelected ? "text-indigo-100" : "text-zinc-500"
+                className={`mt-1.5 text-xs font-semibold ${
+                  isSelected
+                    ? "text-indigo-100"
+                    : "text-zinc-600 dark:text-zinc-400"
                 }`}
               >
                 Arsitektur: {sub.modelName} &bull; Anggota Tim:{" "}
@@ -136,7 +144,7 @@ export default function ExperimentLineagePage() {
                   className={`mt-3 rounded-2xl p-3 text-xs italic ${
                     isSelected
                       ? "bg-white/10 text-white"
-                      : "bg-zinc-50 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                      : "bg-zinc-50 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                   }`}
                 >
                   &ldquo;{sub.reasonOfRevision}&rdquo;
@@ -178,7 +186,7 @@ export default function ExperimentLineagePage() {
 
         <Link
           href="/leaderboard"
-          className="rounded-2xl bg-[#4d3fa3] px-5 py-3 text-xs font-black text-white shadow-lg transition-transform active:scale-95 hover:bg-[#3e3188]"
+          className="rounded-2xl bg-[#4d3fa3] px-5 py-3 text-xs font-black text-white shadow-lg transition-transform active:scale-95 hover:bg-[#3d3185]"
         >
           Lihat Peringkat
         </Link>
@@ -207,7 +215,7 @@ export default function ExperimentLineagePage() {
                     <h3 className="text-lg font-black text-zinc-900 dark:text-white">
                       {selectedSub.name}
                     </h3>
-                    <p className="text-xs font-semibold text-zinc-500">
+                    <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                       {selectedSub.modelName} &bull; Anggota Tim:{" "}
                       {selectedSub.leaderboardName}
                     </p>
@@ -238,7 +246,7 @@ export default function ExperimentLineagePage() {
                       <span className="mb-1 block text-[10px] font-black uppercase text-zinc-400">
                         Alasan Revisi
                       </span>
-                      <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                      <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                         {selectedSub.reasonOfRevision}
                       </p>
                     </div>
@@ -248,7 +256,7 @@ export default function ExperimentLineagePage() {
                     <span className="mb-1.5 block text-[10px] font-black uppercase text-zinc-400">
                       Strategi Eksperimen
                     </span>
-                    <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    <p className="text-xs font-medium leading-relaxed text-zinc-600 dark:text-zinc-300">
                       {selectedSub.strategyDescription}
                     </p>
                   </div>
@@ -265,7 +273,7 @@ export default function ExperimentLineagePage() {
                 </div>
               ) : (
                 <div className="py-12 text-center text-xs text-zinc-400">
-                  Pilih salah satu bereksperimen di sebelah kiri untuk meninjau
+                  Pilih salah satu eksperimen di sebelah kiri untuk meninjau
                   detail.
                 </div>
               )}

@@ -42,7 +42,7 @@ export default function DashboardPage() {
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
             <Sparkles className="h-3 w-3" />
-            <span>Pusat Kendali Peneliti</span>
+            <span>AI Research Studio</span>
           </div>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-4xl">
             Ringkasan Evaluasi &amp; Peringkat Model
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             {users.length}
           </div>
           <div className="mt-1 text-xs font-semibold text-emerald-900/70 dark:text-emerald-300">
-            Peneliti aktif AI Studio
+            Anggota tim aktif
           </div>
         </div>
 
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                   <tr>
                     <th className="p-4">Rank</th>
                     <th className="p-4">Nama Submission</th>
-                    <th className="p-4">Peneliti</th>
+                    <th className="p-4">Anggota Tim</th>
                     <th className="p-4">Arsitektur</th>
                     <th className="p-4 text-right">Val F1</th>
                     <th className="p-4 text-right">Test F1</th>

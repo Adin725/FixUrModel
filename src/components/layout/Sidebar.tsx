@@ -192,7 +192,7 @@ export const Sidebar: React.FC = () => {
             {isAccountMenuOpen && (
               <div className="absolute bottom-full left-0 mb-2 w-full rounded-2xl bg-[#2e236b] p-2.5 shadow-2xl border border-white/15 dark:bg-zinc-900">
                 <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-200">
-                  Pilih Peneliti Aktif
+                  Pilih Anggota Tim
                 </div>
                 <div className="mt-1 space-y-1">
                   {users.map((u) => {

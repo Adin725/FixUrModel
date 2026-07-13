@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Activity,
   Sparkles,
+  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 export default function OfficialCalibrationPage() {
@@ -62,6 +64,13 @@ export default function OfficialCalibrationPage() {
     (s) => s.generalizationGap < -0.01
   ).length;
 
+  const valF1Pct = officialSub ? officialSub.validationMacroF1 * 100 : 0;
+  const gtF1Pct = officialSub ? officialSub.testMacroF1 * 100 : 0;
+  const actualF1Pct =
+    officialSub && officialSub.officialActualF1 !== undefined
+      ? officialSub.officialActualF1 * 100
+      : undefined;
+
   return (
     <div className="mx-auto max-w-7xl space-y-7 pb-14">
       {/* Hero Bento Header */}
@@ -102,7 +111,7 @@ export default function OfficialCalibrationPage() {
               onClick={() => setActiveSlot(slot)}
               className={`flex items-center gap-2.5 rounded-2xl px-5 py-3.5 text-xs font-bold transition-all ${
                 isActive
-                  ? "bg-[#4d3fa3] text-white shadow-md"
+                  ? "pin-card-selected"
                   : "pin-card text-zinc-700 hover:border-indigo-300 dark:text-zinc-300"
               }`}
             >
@@ -146,129 +155,121 @@ export default function OfficialCalibrationPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="pin-card space-y-6 p-6 lg:col-span-2">
-              <div className="flex items-start justify-between">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div className="pin-card space-y-6 p-7 lg:col-span-8">
+              <div className="flex items-start justify-between gap-4">
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     Slot Resmi #{activeSlot}
                   </span>
-                  <h2 className="mt-1 text-xl font-black text-zinc-900 dark:text-white">
+                  <h2 className="mt-1 text-2xl font-black text-zinc-900 dark:text-white">
                     {officialSub.name}
                   </h2>
-                  <p className="text-xs text-zinc-500">
+                  <p className="mt-0.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                     Arsitektur: {officialSub.modelName} &bull; Anggota Tim:{" "}
                     {officialSub.leaderboardName}
                   </p>
                 </div>
 
-                <span className="rounded-xl bg-zinc-900 px-3 py-1.5 font-mono text-xs font-black text-white dark:bg-zinc-100 dark:text-zinc-900">
+                <span className="rounded-2xl bg-zinc-900 px-4 py-2 font-mono text-xs font-black text-white dark:bg-zinc-100 dark:text-zinc-900">
                   Rank #{officialSub.rank}
                 </span>
               </div>
 
               {/* 3-Way Core Metric Bento Cards */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <span className="text-[10px] font-black uppercase text-zinc-400">
+                <div className="pin-card pin-card-sky p-5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-950/70 dark:text-indigo-200">
                     1. Validasi Internal
                   </span>
-                  <div className="mt-2 font-mono text-2xl font-black text-zinc-900 dark:text-white">
-                    {(officialSub.validationMacroF1 * 100).toFixed(2)}%
+                  <div className="mt-2 font-mono text-2xl font-black text-indigo-950 dark:text-white">
+                    {valF1Pct.toFixed(2)}%
                   </div>
-                  <span className="text-[11px] text-zinc-500">
-                    Split validasi
+                  <span className="mt-1 block text-[11px] font-semibold text-indigo-900/70 dark:text-indigo-300">
+                    Split validasi model
                   </span>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <span className="text-[10px] font-black uppercase text-zinc-400">
-                    2. Ground Truth F1
+                <div className="pin-card pin-card-mint p-5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-950/70 dark:text-emerald-200">
+                    2. Ground Truth Platform
                   </span>
-                  <div className="mt-2 font-mono text-2xl font-black text-indigo-600 dark:text-indigo-400">
-                    {(officialSub.testMacroF1 * 100).toFixed(2)}%
+                  <div className="mt-2 font-mono text-2xl font-black text-emerald-950 dark:text-white">
+                    {gtF1Pct.toFixed(2)}%
                   </div>
-                  <span className="text-[11px] text-zinc-500">
-                    GT {activeGtVersion}
+                  <span className="mt-1 block text-[11px] font-semibold text-emerald-900/70 dark:text-emerald-300">
+                    Evaluasi GT {activeGtVersion}
                   </span>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <span className="text-[10px] font-black uppercase text-zinc-400">
+                <div className="pin-card pin-card-lavender p-5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-950/70 dark:text-violet-200">
                     3. Nilai Aktual Eksternal
                   </span>
-                  <div className="mt-2 font-mono text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                    {officialSub.officialActualF1 !== undefined
-                      ? `${(officialSub.officialActualF1 * 100).toFixed(2)}%`
-                      : "Belum diisi"}
+                  <div className="mt-2 font-mono text-2xl font-black text-violet-950 dark:text-white">
+                    {actualF1Pct !== undefined
+                      ? `${actualF1Pct.toFixed(2)}%`
+                      : "Belum Dikalibrasi"}
                   </div>
-                  <span className="text-[11px] text-zinc-500">
-                    Evaluasi eksternal
+                  <span className="mt-1 block text-[11px] font-semibold text-violet-900/70 dark:text-violet-300">
+                    Hasil pengujian eksternal
                   </span>
                 </div>
               </div>
 
-              {officialSub.officialActualF1 !== undefined && (
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                  <h4 className="mb-3 text-xs font-black uppercase tracking-wider text-zinc-400">
-                    Selisih Korelasi 3 Arah (Delta)
-                  </h4>
-                  <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
-                    <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-                      <span className="block font-bold text-zinc-500">
-                        Val &rarr; GT
-                      </span>
-                      <span className="font-mono text-base font-black text-amber-600">
-                        {officialSub.validationMacroF1 -
-                          officialSub.testMacroF1 >
-                        0
-                          ? "+"
-                          : ""}
-                        {(
-                          (officialSub.validationMacroF1 -
-                            officialSub.testMacroF1) *
-                          100
-                        ).toFixed(2)}
-                        %
-                      </span>
+              {/* Intuitive 3-Way Correlation Breakdown (Explicit & Clear) */}
+              {actualF1Pct !== undefined && (
+                <div className="space-y-4 rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 dark:text-white">
+                      Analisis Deviasi &amp; Korelasi 3 Arah
+                    </h4>
+                    <span className="text-[11px] font-semibold text-zinc-500">
+                      Perbandingan antar tahapan pengujian
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {/* Generalization Gap */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="text-[11px] font-bold text-zinc-500">
+                        Generalization Gap
+                      </div>
+                      <div className="mt-1 font-mono text-xl font-black text-amber-600 dark:text-amber-400">
+                        {valF1Pct - gtF1Pct > 0 ? "+" : ""}
+                        {(valF1Pct - gtF1Pct).toFixed(2)}%
+                      </div>
+                      <p className="mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Selisih Validasi ke Ground Truth platform
+                      </p>
                     </div>
 
-                    <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-                      <span className="block font-bold text-zinc-500">
-                        GT &rarr; Aktual
-                      </span>
-                      <span className="font-mono text-base font-black text-emerald-600">
-                        {officialSub.testMacroF1 -
-                          officialSub.officialActualF1 >
-                        0
-                          ? "+"
-                          : ""}
-                        {(
-                          (officialSub.testMacroF1 -
-                            officialSub.officialActualF1) *
-                          100
-                        ).toFixed(2)}
-                        %
-                      </span>
+                    {/* Calibration Delta */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="text-[11px] font-bold text-zinc-500">
+                        Calibration Delta
+                      </div>
+                      <div className="mt-1 font-mono text-xl font-black text-emerald-600 dark:text-emerald-400">
+                        {gtF1Pct - actualF1Pct > 0 ? "+" : ""}
+                        {(gtF1Pct - actualF1Pct).toFixed(2)}%
+                      </div>
+                      <p className="mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Selisih Ground Truth ke Aktual eksternal
+                      </p>
                     </div>
 
-                    <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-                      <span className="block font-bold text-zinc-500">
-                        Total Gap
-                      </span>
-                      <span className="font-mono text-base font-black text-zinc-900 dark:text-white">
-                        {officialSub.validationMacroF1 -
-                          officialSub.officialActualF1 >
-                        0
-                          ? "+"
-                          : ""}
-                        {(
-                          (officialSub.validationMacroF1 -
-                            officialSub.officialActualF1) *
-                          100
-                        ).toFixed(2)}
-                        %
-                      </span>
+                    {/* Total Deviasi */}
+                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="text-[11px] font-bold text-zinc-500">
+                        Total Deviasi Evaluasi
+                      </div>
+                      <div className="mt-1 font-mono text-xl font-black text-zinc-900 dark:text-white">
+                        {valF1Pct - actualF1Pct > 0 ? "+" : ""}
+                        {(valF1Pct - actualF1Pct).toFixed(2)}%
+                      </div>
+                      <p className="mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                        Jarak dari Validasi ke Aktual eksternal
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -276,15 +277,15 @@ export default function OfficialCalibrationPage() {
             </div>
 
             {/* Form Input Card */}
-            <div className="pin-card space-y-5 p-6">
+            <div className="pin-card space-y-5 p-7 lg:col-span-4">
               <div className="flex items-center gap-2.5">
                 <Award className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-sm font-black text-zinc-900 dark:text-white">
-                  Input Nilai Aktual Evaluasi
+                <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                  Input Nilai Aktual
                 </h3>
               </div>
 
-              <p className="text-xs leading-relaxed text-zinc-500">
+              <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
                 Masukkan skor Macro F1 resmi hasil pengujian eksternal untuk
                 slot <strong className="text-zinc-900 dark:text-white">Official #{activeSlot}</strong>.
               </p>
@@ -302,14 +303,14 @@ export default function OfficialCalibrationPage() {
                     value={actualInput}
                     onChange={(e) => setActualInput(e.target.value)}
                     placeholder="Contoh: 88.40"
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 font-mono text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 font-mono text-sm font-bold text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                     required
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4d3fa3] py-3 text-xs font-black text-white shadow-md hover:bg-[#3d3185]"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4d3fa3] py-3.5 text-xs font-black text-white shadow-md hover:bg-[#3d3185]"
                 >
                   <Save className="h-4 w-4" />
                   <span>Simpan Kalibrasi</span>
@@ -317,8 +318,8 @@ export default function OfficialCalibrationPage() {
               </form>
 
               {savedSuccess && (
-                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300">
-                  <CheckCircle2 className="h-4 w-4" />
+                <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
                   <span>Kalibrasi berhasil disimpan</span>
                 </div>
               )}
@@ -326,7 +327,7 @@ export default function OfficialCalibrationPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="pin-card space-y-4 p-6">
+            <div className="pin-card space-y-4 p-7">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
                   Audit Reliabilitas
@@ -339,39 +340,32 @@ export default function OfficialCalibrationPage() {
               </h3>
 
               <div className="space-y-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-                {officialSub.officialActualF1 !== undefined ? (
+                {actualF1Pct !== undefined ? (
                   <>
                     <p>
-                      Selisih antara pengujian pada GT platform dan nilai
-                      Aktual untuk Official #{activeSlot} adalah{" "}
-                      <strong className="font-mono text-zinc-900 dark:text-white">
-                        {Math.abs(
-                          (officialSub.testMacroF1 -
-                            officialSub.officialActualF1) *
-                            100
-                        ).toFixed(2)}
-                        %
+                      Selisih antara pengujian pada Ground Truth platform dan
+                      nilai Aktual untuk Official #{activeSlot} adalah{" "}
+                      <strong className="font-mono font-bold text-zinc-900 dark:text-white">
+                        {Math.abs(gtF1Pct - actualF1Pct).toFixed(2)}%
                       </strong>
                       .
                     </p>
 
-                    {Math.abs(
-                      officialSub.testMacroF1 - officialSub.officialActualF1
-                    ) < 0.02 ? (
+                    {Math.abs(gtF1Pct - actualF1Pct) < 2.0 ? (
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
                         <span className="mb-1 block font-bold">
-                          Reliabilitas Sangat Tinggi
+                          Reliabilitas Sangat Presisi
                         </span>
-                        Ground Truth mencerminkan performa pengujian aktual
-                        dengan selisih di bawah 2%.
+                        Ground Truth platform mencerminkan performa pengujian
+                        aktual eksternal dengan selisih sangat rendah (&lt; 2%).
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                         <span className="mb-1 block font-bold">
                           Perlu Tinjauan Sampel Ambigu
                         </span>
-                        Disarankan meninjau ulang sampel pada halaman Analisis
-                        GT.
+                        Disarankan memeriksa kembali sampel dengan tingkat
+                        kesepakatan rendah pada halaman Analisis GT.
                       </div>
                     )}
                   </>
@@ -383,7 +377,7 @@ export default function OfficialCalibrationPage() {
               </div>
             </div>
 
-            <div className="pin-card space-y-4 p-6">
+            <div className="pin-card space-y-4 p-7">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
                   Pola Generalization
@@ -395,12 +389,12 @@ export default function OfficialCalibrationPage() {
                 Distribusi Generalization Gap
               </h3>
 
-              <div className="grid grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-2 gap-4 pt-1">
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <span className="text-[10px] font-black uppercase text-zinc-400">
                     Rata-Rata Gap
                   </span>
-                  <div className="mt-1 font-mono text-lg font-black text-zinc-900 dark:text-white">
+                  <div className="mt-1 font-mono text-xl font-black text-zinc-900 dark:text-white">
                     {avgGeneralizationGap > 0 ? "+" : ""}
                     {(avgGeneralizationGap * 100).toFixed(2)}%
                   </div>
@@ -408,12 +402,12 @@ export default function OfficialCalibrationPage() {
 
                 <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <span className="text-[10px] font-black uppercase text-zinc-400">
-                    Kecenderungan
+                    Kecenderungan Model
                   </span>
                   <div className="mt-1 text-xs font-black text-zinc-900 dark:text-white">
                     {optimisticCount > pessimisticCount
                       ? "Cenderung Optimistic"
-                      : "Stabil"}
+                      : "Stabil & Konsisten"}
                   </div>
                 </div>
               </div>

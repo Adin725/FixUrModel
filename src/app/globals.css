@@ -50,105 +50,114 @@ body {
   background: #94a3b8;
 }
 
-/* Pinterest & Dribbble Creative Bento Card */
-.pin-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 28px;
-  box-shadow: 0 14px 38px -8px rgba(35, 43, 90, 0.07), 0 4px 12px -2px rgba(35, 43, 90, 0.03);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-}
+@layer components {
+  /* Pinterest & Dribbble Creative Bento Card */
+  .pin-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 28px;
+    box-shadow: 0 14px 38px -8px rgba(35, 43, 90, 0.07), 0 4px 12px -2px rgba(35, 43, 90, 0.03);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+  }
 
-.pin-card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 48px -10px rgba(77, 63, 163, 0.14), 0 8px 24px -4px rgba(77, 63, 163, 0.06);
-}
+  .pin-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px -10px rgba(77, 63, 163, 0.14), 0 8px 24px -4px rgba(77, 63, 163, 0.06);
+  }
 
-/* Pinterest Pastel Tinted Cards */
-.pin-card-lavender {
-  background: linear-gradient(135deg, #faf7ff 0%, #f3ebff 100%);
-  border: 1px solid #e9ddff;
-}
-.dark .pin-card-lavender {
-  background: linear-gradient(135deg, #1b1630 0%, #151126 100%);
-  border: 1px solid #2f2654;
-}
+  .pin-card-selected {
+    background: linear-gradient(135deg, #4d3fa3 0%, #3a2e82 100%) !important;
+    color: #ffffff !important;
+    border: 1.5px solid #6b58e6 !important;
+    box-shadow: 0 18px 42px -8px rgba(77, 63, 163, 0.4) !important;
+  }
 
-.pin-card-mint {
-  background: linear-gradient(135deg, #f2fef7 0%, #e3fcf0 100%);
-  border: 1px solid #c7f5dd;
-}
-.dark .pin-card-mint {
-  background: linear-gradient(135deg, #0e241b 0%, #0a1b14 100%);
-  border: 1px solid #1a4231;
-}
+  /* Pinterest Pastel Tinted Cards */
+  .pin-card-lavender {
+    background: linear-gradient(135deg, #faf7ff 0%, #f3ebff 100%);
+    border: 1px solid #e9ddff;
+  }
+  .dark .pin-card-lavender {
+    background: linear-gradient(135deg, #1b1630 0%, #151126 100%);
+    border: 1px solid #2f2654;
+  }
 
-.pin-card-rose {
-  background: linear-gradient(135deg, #fff7f9 0%, #ffeaf1 100%);
-  border: 1px solid #fecddf;
-}
-.dark .pin-card-rose {
-  background: linear-gradient(135deg, #2b121e 0%, #1f0c15 100%);
-  border: 1px solid #4a1f33;
-}
+  .pin-card-mint {
+    background: linear-gradient(135deg, #f2fef7 0%, #e3fcf0 100%);
+    border: 1px solid #c7f5dd;
+  }
+  .dark .pin-card-mint {
+    background: linear-gradient(135deg, #0e241b 0%, #0a1b14 100%);
+    border: 1px solid #1a4231;
+  }
 
-.pin-card-sky {
-  background: linear-gradient(135deg, #f4f8ff 0%, #e6f0ff 100%);
-  border: 1px solid #cce0ff;
-}
-.dark .pin-card-sky {
-  background: linear-gradient(135deg, #101c36 0%, #0c1528 100%);
-  border: 1px solid #1e335e;
-}
+  .pin-card-rose {
+    background: linear-gradient(135deg, #fff7f9 0%, #ffeaf1 100%);
+    border: 1px solid #fecddf;
+  }
+  .dark .pin-card-rose {
+    background: linear-gradient(135deg, #2b121e 0%, #1f0c15 100%);
+    border: 1px solid #4a1f33;
+  }
 
-.pin-card-violet-gradient {
-  background: linear-gradient(135deg, #5744d4 0%, #3d2c9e 100%);
-  color: #ffffff;
-  border: 1px solid #6b58e6;
-  box-shadow: 0 18px 42px -8px rgba(87, 68, 212, 0.35);
-}
+  .pin-card-sky {
+    background: linear-gradient(135deg, #f4f8ff 0%, #e6f0ff 100%);
+    border: 1px solid #cce0ff;
+  }
+  .dark .pin-card-sky {
+    background: linear-gradient(135deg, #101c36 0%, #0c1528 100%);
+    border: 1px solid #1e335e;
+  }
 
-/* Modern Creative Table */
-.pin-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 0.82rem;
-  text-align: left;
-}
-.pin-table thead tr {
-  background: rgba(243, 245, 252, 0.8);
-}
-.dark .pin-table thead tr {
-  background: rgba(22, 28, 48, 0.8);
-}
-.pin-table thead th {
-  padding: 1rem 1.25rem;
-  font-weight: 800;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: #64748b;
-  border-bottom: 1.5px solid rgba(226, 232, 246, 0.9);
-}
-.dark .pin-table thead th {
-  color: #94a3b8;
-  border-bottom: 1.5px solid rgba(45, 53, 85, 0.7);
-}
-.pin-table tbody td {
-  padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid rgba(235, 240, 248, 0.8);
-  transition: background 0.15s ease;
-}
-.dark .pin-table tbody td {
-  border-bottom: 1px solid rgba(35, 43, 80, 0.5);
-}
-.pin-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.pin-table tbody tr:hover td {
-  background: rgba(244, 246, 253, 0.7);
-}
-.dark .pin-table tbody tr:hover td {
-  background: rgba(25, 32, 56, 0.6);
+  .pin-card-violet-gradient {
+    background: linear-gradient(135deg, #5744d4 0%, #3d2c9e 100%);
+    color: #ffffff;
+    border: 1px solid #6b58e6;
+    box-shadow: 0 18px 42px -8px rgba(87, 68, 212, 0.35);
+  }
+
+  /* Modern Creative Table */
+  .pin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+  .pin-table thead tr {
+    background: rgba(243, 245, 252, 0.8);
+  }
+  .dark .pin-table thead tr {
+    background: rgba(22, 28, 48, 0.8);
+  }
+  .pin-table thead th {
+    padding: 1rem 1.25rem;
+    font-weight: 800;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #64748b;
+    border-bottom: 1.5px solid rgba(226, 232, 246, 0.9);
+  }
+  .dark .pin-table thead th {
+    color: #94a3b8;
+    border-bottom: 1.5px solid rgba(45, 53, 85, 0.7);
+  }
+  .pin-table tbody td {
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid rgba(235, 240, 248, 0.8);
+    transition: background 0.15s ease;
+  }
+  .dark .pin-table tbody td {
+    border-bottom: 1px solid rgba(35, 43, 80, 0.5);
+  }
+  .pin-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .pin-table tbody tr:hover td {
+    background: rgba(244, 246, 253, 0.7);
+  }
+  .dark .pin-table tbody tr:hover td {
+    background: rgba(25, 32, 56, 0.6);
+  }
 }
