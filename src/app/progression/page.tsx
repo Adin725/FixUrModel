@@ -3,9 +3,16 @@
 import React, { useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
 } from "recharts";
-import { TrendingUp, User } from "lucide-react";
+import { TrendingUp, User, Sparkles } from "lucide-react";
 
 export default function ProgressionPage() {
   const { submissions, users } = useAppStore();
@@ -13,7 +20,8 @@ export default function ProgressionPage() {
 
   const filteredSubmissions = useMemo(() => {
     let list = [...submissions];
-    if (selectedAuthor !== "all") list = list.filter((s) => s.leaderboardName === selectedAuthor);
+    if (selectedAuthor !== "all")
+      list = list.filter((s) => s.leaderboardName === selectedAuthor);
     list.sort((a, b) => {
       const idxA = parseInt(a.name.replace(/\D/g, "") || "1", 10);
       const idxB = parseInt(b.name.replace(/\D/g, "") || "1", 10);
@@ -22,146 +30,186 @@ export default function ProgressionPage() {
     return list;
   }, [submissions, selectedAuthor]);
 
-  const chartData = useMemo(() => filteredSubmissions.map((sub) => ({
-    name: sub.name,
-    "F1 Validasi (%)": Number((sub.validationMacroF1 * 100).toFixed(2)),
-    "F1 Test (%)": Number((sub.testMacroF1 * 100).toFixed(2)),
-    "Gen. Gap (%)": Number((sub.generalizationGap * 100).toFixed(2)),
-  })), [filteredSubmissions]);
+  const chartData = useMemo(
+    () =>
+      filteredSubmissions.map((sub) => ({
+        name: sub.name,
+        "F1 Validasi (%)": Number((sub.validationMacroF1 * 100).toFixed(2)),
+        "F1 Test (%)": Number((sub.testMacroF1 * 100).toFixed(2)),
+        "Gen. Gap (%)": Number((sub.generalizationGap * 100).toFixed(2)),
+      })),
+    [filteredSubmissions]
+  );
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-7xl space-y-7 pb-14">
+      {/* Hero Bento Header */}
+      <div className="pin-card pin-card-lavender flex flex-wrap items-center justify-between gap-6 p-7">
         <div>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            background: "#f0fdf4", border: "1px solid #bbf7d0",
-            borderRadius: "8px", padding: "4px 10px",
-            fontSize: "10.5px", fontWeight: 700, color: "#16a34a", marginBottom: "8px",
-          }}>
-            <TrendingUp style={{ width: "12px", height: "12px" }} />
-            Chronological Performance Analysis
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+            <Sparkles className="h-3 w-3" />
+            <span>Perkembangan Eksperimen</span>
           </div>
-          <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f1b35", letterSpacing: "-0.4px" }}>
-            Perkembangan Performa Eksperimen
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+            Trajektori Performa Model
           </h1>
-          <p style={{ fontSize: "12.5px", color: "#94a3b8", marginTop: "4px" }}>
-            Grafik trajektori Macro F1 Validasi vs Test dan Generalization Gap
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+            Perkembangan kronologis skor Macro F1 Validasi vs Test dan stabilitas
+            Generalization Gap.
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <User style={{ width: "14px", height: "14px", color: "#94a3b8" }} />
-          <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569" }}>Filter:</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-zinc-500">Anggota Tim:</span>
           <select
             value={selectedAuthor}
             onChange={(e) => setSelectedAuthor(e.target.value)}
-            style={{
-              border: "1.5px solid #e2e8f0", borderRadius: "8px",
-              background: "#fff", padding: "7px 12px",
-              fontSize: "12px", color: "#0f1b35", outline: "none", cursor: "pointer",
-            }}
+            className="rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs font-bold text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
             <option value="all">Semua Anggota</option>
             {users.map((u) => (
               <option key={u.id} value={u.leaderboardName}>
-                {u.leaderboardName} ({u.fullName})
+                {u.leaderboardName}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Chart Card */}
-      <div className="nk-card" style={{ padding: "24px" }}>
-        <div style={{ marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: 800, color: "#0f1b35" }}>
-            Grafik Perkembangan Model ({filteredSubmissions.length} Eksperimen)
+      {/* Modern SaaS Chart Bento Card */}
+      <div className="pin-card p-6">
+        <div className="mb-4">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white">
+            Grafik Perkembangan ({filteredSubmissions.length} Eksperimen)
           </h2>
-          <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "3px" }}>
-            Perbandingan F1 Validasi vs Test dan fluktuasi Generalization Gap antar submission
+          <p className="text-xs text-zinc-500">
+            Perbandingan F1 Validasi vs Test dan dinamika Generalization Gap
           </p>
         </div>
 
         {chartData.length === 0 ? (
-          <div style={{ height: "280px", display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8", fontSize: "13px" }}>
-            Belum ada data submission untuk ditampilkan.
+          <div className="flex h-72 items-center justify-center text-xs font-semibold text-zinc-400">
+            Belum ada data eksperimen untuk ditampilkan.
           </div>
         ) : (
-          <div style={{ height: "280px" }}>
+          <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} domain={[60, 100]} />
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 30, left: -15, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="name" stroke="#888" fontSize={11} />
+                <YAxis stroke="#888" fontSize={11} domain={[60, 100]} />
                 <Tooltip
-                  contentStyle={{ borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "12px", background: "#fff" }}
+                  contentStyle={{
+                    borderRadius: "16px",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    backgroundColor: "#18181b",
+                    color: "#fff",
+                    fontSize: "12px",
+                  }}
                 />
-                <Legend wrapperStyle={{ fontSize: "11.5px", paddingTop: "12px" }} />
-                <Line type="monotone" dataKey="F1 Validasi (%)" stroke="#1d4ed8" strokeWidth={2.5} dot={{ r: 4, fill: "#1d4ed8" }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="F1 Test (%)" stroke="#059669" strokeWidth={2.5} dot={{ r: 4, fill: "#059669" }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="Gen. Gap (%)" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} />
+                <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                <Line
+                  type="monotone"
+                  dataKey="F1 Validasi (%)"
+                  stroke="#4d3fa3"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#4d3fa3" }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="F1 Test (%)"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "#10b981" }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="Gen. Gap (%)"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={{ r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
       </div>
 
-      {/* Table */}
-      <div className="nk-card" style={{ overflow: "hidden" }}>
-        <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9" }}>
-          <h3 style={{ fontSize: "13px", fontWeight: 800, color: "#0f1b35" }}>Rincian Perkembangan Eksperimen</h3>
+      {/* Table Bento Container */}
+      <div className="pin-card overflow-hidden">
+        <div className="border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
+          <h3 className="text-base font-black text-zinc-900 dark:text-white">
+            Rincian Perkembangan Eksperimen
+          </h3>
+          <p className="text-xs text-zinc-500">
+            Daftar lengkap eksperimen berurutan berdasarkan waktu submission
+          </p>
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table className="nk-table">
+        <div className="overflow-x-auto">
+          <table className="pin-table min-w-[760px]">
             <thead>
               <tr>
-                <th>No</th>
+                <th className="w-16">No</th>
                 <th>Submission</th>
-                <th>Author</th>
-                <th>Arsitektur Model</th>
-                <th style={{ textAlign: "right" }}>F1 Validasi</th>
-                <th style={{ textAlign: "right" }}>F1 Test</th>
-                <th style={{ textAlign: "right" }}>Gen. Gap</th>
-                <th>Waktu Upload</th>
+                <th>Anggota Tim</th>
+                <th>Arsitektur</th>
+                <th className="text-right">F1 Validasi</th>
+                <th className="text-right">F1 Test</th>
+                <th className="text-right">Gen. Gap</th>
+                <th>Waktu</th>
               </tr>
             </thead>
             <tbody>
               {filteredSubmissions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "#94a3b8" }}>
-                    Belum ada submission.
+                  <td
+                    colSpan={8}
+                    className="py-14 text-center text-xs font-semibold text-zinc-400"
+                  >
+                    Belum ada submission tercatat.
                   </td>
                 </tr>
               ) : (
                 filteredSubmissions.map((sub, idx) => {
                   const gap = sub.generalizationGap;
-                  const gapColor = gap >= 0 ? "#059669" : gap >= -0.03 ? "#d97706" : "#dc2626";
+                  const gapColor =
+                    gap >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : gap >= -0.03
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-rose-600 dark:text-rose-400";
+
                   return (
                     <tr key={sub.id}>
-                      <td style={{ fontWeight: 700, color: "#94a3b8" }}>#{idx + 1}</td>
-                      <td style={{ fontWeight: 700, color: "#1d4ed8" }}>{sub.name}</td>
-                      <td style={{ color: "#475569" }}>{sub.leaderboardName}</td>
-                      <td style={{ color: "#64748b", maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub.modelName}</td>
-                      <td style={{ textAlign: "right", fontFamily: "monospace", color: "#64748b" }}>
+                      <td className="font-mono font-black text-zinc-400">
+                        #{idx + 1}
+                      </td>
+                      <td className="font-black text-zinc-900 dark:text-white">
+                        {sub.name}
+                      </td>
+                      <td className="font-semibold text-zinc-700 dark:text-zinc-300">
+                        {sub.leaderboardName}
+                      </td>
+                      <td className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {sub.modelName}
+                      </td>
+                      <td className="text-right font-mono text-xs font-semibold text-zinc-500">
                         {(sub.validationMacroF1 * 100).toFixed(2)}%
                       </td>
-                      <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 800, color: "#059669" }}>
+                      <td className="text-right font-mono text-xs font-black text-emerald-600 dark:text-emerald-400">
                         {(sub.testMacroF1 * 100).toFixed(2)}%
                       </td>
-                      <td style={{ textAlign: "right" }}>
-                        <span style={{
-                          display: "inline-block", padding: "2px 8px",
-                          borderRadius: "6px", fontSize: "11px", fontWeight: 700,
-                          fontFamily: "monospace",
-                          background: gapColor + "15", color: gapColor,
-                        }}>
-                          {gap > 0 ? "+" : ""}{(gap * 100).toFixed(2)}%
-                        </span>
+                      <td className={`text-right font-mono font-black ${gapColor}`}>
+                        {gap > 0 ? "+" : ""}
+                        {(gap * 100).toFixed(2)}%
                       </td>
-                      <td style={{ fontFamily: "monospace", fontSize: "10.5px", color: "#94a3b8" }}>
+                      <td className="font-mono text-xs text-zinc-400">
                         {sub.uploadTimestampWIB}
                       </td>
                     </tr>

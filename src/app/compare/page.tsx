@@ -1,18 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { ClassLabel } from "@/types";
 import { useAppStore } from "@/lib/store";
 import { CLASSES } from "@/lib/evaluator";
-import {
-  GitCompare,
-  CheckCircle2,
-  Award,
-  Layers,
-  BarChart3,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -22,8 +13,6 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
-  AreaChart,
-  Area,
 } from "recharts";
 
 export default function CompareModelsPage() {
@@ -47,11 +36,11 @@ export default function CompareModelsPage() {
     if (Math.abs(f1Diff) >= 0.1) {
       if (f1Diff > 0) {
         insights.push(
-          `${modelA.name} memiliki keunggulan keseluruhan Macro F1 sebesar +${f1Diff.toFixed(2)}% dibandingkan ${modelB.name}.`
+          `${modelA.name} memiliki keunggulan Macro F1 sebesar +${f1Diff.toFixed(2)}% dibandingkan ${modelB.name}.`
         );
       } else {
         insights.push(
-          `${modelB.name} memiliki keunggulan keseluruhan Macro F1 sebesar +${Math.abs(f1Diff).toFixed(2)}% dibandingkan ${modelA.name}.`
+          `${modelB.name} memiliki keunggulan Macro F1 sebesar +${Math.abs(f1Diff).toFixed(2)}% dibandingkan ${modelA.name}.`
         );
       }
     }
@@ -66,11 +55,11 @@ export default function CompareModelsPage() {
         const diffCls = (mA.f1Score - mB.f1Score) * 100;
         if (diffCls > 1.0) {
           insights.push(
-            `${modelA.name} memiliki performa lebih baik pada kelas ${cls} (+${diffCls.toFixed(2)}% F1).`
+            `${modelA.name} unggul pada kelas ${cls} (+${diffCls.toFixed(2)}% F1).`
           );
         } else if (diffCls < -1.0) {
           insights.push(
-            `${modelB.name} memiliki performa lebih baik pada kelas ${cls} (+${Math.abs(diffCls).toFixed(2)}% F1).`
+            `${modelB.name} unggul pada kelas ${cls} (+${Math.abs(diffCls).toFixed(2)}% F1).`
           );
         }
       }
@@ -78,7 +67,7 @@ export default function CompareModelsPage() {
 
     if (insights.length === 0) {
       insights.push(
-        "Kedua model memiliki performa yang sangat mirip di seluruh kelas."
+        "Kedua model memiliki performa seimbang di seluruh kelas."
       );
     }
     return insights;
@@ -106,28 +95,33 @@ export default function CompareModelsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <div className="border-b border-zinc-200/80 pb-6 dark:border-zinc-800/80">
-        <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600 dark:bg-blue-950/60 dark:text-blue-300">
-          Enterprise Comparative Evaluation Studio
-        </span>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
-          Perbandingan Komprehensif Dua Model
-        </h1>
-        <p className="mt-1 text-xs sm:text-sm text-zinc-500">
-          Analisis keunggulan per kelas visualisasi kurva modern &amp; keputusan otomatis
-        </p>
+    <div className="mx-auto max-w-7xl space-y-7 pb-14">
+      {/* Hero Bento Header */}
+      <div className="pin-card pin-card-lavender flex flex-wrap items-center justify-between gap-6 p-7">
+        <div>
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+            <Sparkles className="h-3 w-3" />
+            <span>Komparasi Model</span>
+          </div>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+            Perbandingan Komprehensif Dua Model
+          </h1>
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+            Analisis keunggulan per kelas dan perbandingan metrik evaluasi
+            secara berdampingan.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-blue-500/30 bg-white p-5 shadow-sm dark:border-blue-500/30 dark:bg-zinc-900">
-          <label className="block text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="pin-card p-5">
+          <label className="mb-2 block text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
             Pilih Model A (Utama)
           </label>
           <select
             value={idA}
             onChange={(e) => setIdA(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-semibold text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-white"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-bold text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
             {submissions.map((sub) => (
               <option key={sub.id} value={sub.id}>
@@ -137,9 +131,9 @@ export default function CompareModelsPage() {
             ))}
           </select>
           {modelA && (
-            <div className="mt-3 text-xs text-zinc-500 space-y-1">
+            <div className="mt-3 space-y-1 text-xs text-zinc-500">
               <div>
-                Author:{" "}
+                Anggota Tim:{" "}
                 <strong className="text-zinc-800 dark:text-zinc-200">
                   {modelA.leaderboardName}
                 </strong>
@@ -151,14 +145,14 @@ export default function CompareModelsPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-indigo-500/30 bg-white p-5 shadow-sm dark:border-indigo-500/30 dark:bg-zinc-900">
-          <label className="block text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">
+        <div className="pin-card p-5">
+          <label className="mb-2 block text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
             Pilih Model B (Pembanding)
           </label>
           <select
             value={idB}
             onChange={(e) => setIdB(e.target.value)}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-semibold text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-white"
+            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3.5 py-2.5 text-xs font-bold text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
             {submissions.map((sub) => (
               <option key={sub.id} value={sub.id}>
@@ -168,9 +162,9 @@ export default function CompareModelsPage() {
             ))}
           </select>
           {modelB && (
-            <div className="mt-3 text-xs text-zinc-500 space-y-1">
+            <div className="mt-3 space-y-1 text-xs text-zinc-500">
               <div>
-                Author:{" "}
+                Anggota Tim:{" "}
                 <strong className="text-zinc-800 dark:text-zinc-200">
                   {modelB.leaderboardName}
                 </strong>
@@ -184,44 +178,46 @@ export default function CompareModelsPage() {
       </div>
 
       {modelA && modelB && (
-        <div className="space-y-8">
-          <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-50/70 via-white to-blue-50/70 p-6 dark:from-blue-950/20 dark:via-zinc-900 dark:to-blue-950/20 shadow-sm">
-            <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-bold text-sm mb-3">
-              <Sparkles className="h-5 w-5" />
-              <span>Ringkasan Pengambilan Keputusan (Automated Insights)</span>
+        <div className="space-y-7">
+          <div className="pin-card pin-card-lavender p-6">
+            <div className="mb-3 flex items-center gap-2 text-xs font-black text-indigo-900 dark:text-indigo-200">
+              <Sparkles className="h-4 w-4" />
+              <span>Ringkasan Komparasi</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {getAutomatedInsights().map((ins, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-2.5 rounded-xl border border-blue-500/20 bg-white/80 p-3.5 text-xs font-semibold text-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-200 shadow-xs"
+                  className="flex items-start gap-2.5 rounded-2xl bg-white/80 p-4 text-xs font-semibold text-zinc-800 shadow-2xs dark:bg-zinc-900 dark:text-zinc-200"
                 >
-                  <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
                   <span>{ins}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div>
-            <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-3">
-              1. Perbandingan Metrik Keseluruhan
-            </h2>
-            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-zinc-200 bg-zinc-50 uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="pin-card overflow-hidden">
+            <div className="border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
+              <h2 className="text-base font-black text-zinc-900 dark:text-white">
+                Perbandingan Metrik Keseluruhan
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="pin-table min-w-[700px]">
+                <thead>
                   <tr>
-                    <th className="px-4 py-3.5 font-semibold">Metrik</th>
-                    <th className="px-4 py-3.5 font-semibold text-blue-600">
+                    <th>Metrik</th>
+                    <th className="text-indigo-600">
                       {modelA.name} ({modelA.modelName})
                     </th>
-                    <th className="px-4 py-3.5 font-semibold text-indigo-600">
+                    <th className="text-violet-600">
                       {modelB.name} ({modelB.modelName})
                     </th>
-                    <th className="px-4 py-3.5 font-semibold">Selisih (A - B)</th>
+                    <th>Selisih (A - B)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                <tbody>
                   {[
                     {
                       label: "Accuracy",
@@ -256,26 +252,23 @@ export default function CompareModelsPage() {
                   ].map((row) => {
                     const diff = (row.valA - row.valB) * 100;
                     return (
-                      <tr
-                        key={row.label}
-                        className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40"
-                      >
-                        <td className="px-4 py-3.5 font-bold text-zinc-900 dark:text-white">
+                      <tr key={row.label}>
+                        <td className="font-bold text-zinc-900 dark:text-white">
                           {row.label}
                         </td>
-                        <td className="px-4 py-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
+                        <td className="font-mono font-black text-indigo-600 dark:text-indigo-400">
                           {(row.valA * 100).toFixed(2)}%
                         </td>
-                        <td className="px-4 py-3.5 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        <td className="font-mono font-black text-violet-600 dark:text-violet-400">
                           {(row.valB * 100).toFixed(2)}%
                         </td>
-                        <td className="px-4 py-3.5 font-mono font-semibold">
+                        <td className="font-mono font-bold">
                           <span
                             className={
                               diff > 0
                                 ? "text-emerald-600 dark:text-emerald-400"
                                 : diff < 0
-                                ? "text-red-600 dark:text-red-400"
+                                ? "text-rose-600 dark:text-rose-400"
                                 : "text-zinc-400"
                             }
                           >
@@ -291,43 +284,48 @@ export default function CompareModelsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-3">
-                2. Perbandingan F1 Score Per Kelas (Grafik Visual)
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="pin-card space-y-4 p-6">
+              <h2 className="text-base font-black text-zinc-900 dark:text-white">
+                F1 Score Per Kelas
               </h2>
-              <div className="h-80 w-full rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                  <BarChart
+                    data={chartData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                     <XAxis dataKey="className" stroke="#888" fontSize={11} />
                     <YAxis stroke="#888" fontSize={11} domain={[0, 100]} />
                     <Tooltip
                       contentStyle={{
-                        borderRadius: "12px",
-                        border: "1px solid #333",
+                        borderRadius: "16px",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        backgroundColor: "#18181b",
+                        color: "#fff",
                         fontSize: "12px",
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     <Bar
                       dataKey={`${modelA.name} (F1)`}
-                      fill="#2563EB"
-                      radius={[6, 6, 0, 0]}
+                      fill="#4d3fa3"
+                      radius={[8, 8, 0, 0]}
                     />
                     <Bar
                       dataKey={`${modelB.name} (F1)`}
-                      fill="#6366F1"
-                      radius={[6, 6, 0, 0]}
+                      fill="#7c3aed"
+                      radius={[8, 8, 0, 0]}
                     />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-3">
-                3. Perbandingan Classification Report Per Kelas (Visual Bars Modern)
+            <div className="pin-card space-y-4 p-6">
+              <h2 className="text-base font-black text-zinc-900 dark:text-white">
+                Rincian Performa Per Kelas
               </h2>
               <div className="space-y-4">
                 {CLASSES.map((cls) => {
@@ -350,24 +348,23 @@ export default function CompareModelsPage() {
                   return (
                     <div
                       key={cls}
-                      className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 space-y-3.5"
+                      className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-900 space-y-3"
                     >
-                      <div className="flex items-center justify-between border-b border-zinc-100 pb-2.5 dark:border-zinc-800">
-                        <span className="text-sm font-black text-zinc-900 dark:text-white">
+                      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2 dark:border-zinc-800">
+                        <span className="text-xs font-black text-zinc-900 dark:text-white">
                           Kelas {cls}
                         </span>
-                        <div className="flex items-center gap-3 font-mono text-xs font-bold">
-                          <span className="text-blue-600">
-                            {modelA.name}: {f1A.toFixed(1)}% F1
-                          </span>
-                          <span className="text-zinc-300">|</span>
+                        <div className="font-mono text-xs font-bold">
                           <span className="text-indigo-600">
-                            {modelB.name}: {f1B.toFixed(1)}% F1
+                            A: {f1A.toFixed(1)}%
+                          </span>
+                          <span className="mx-2 text-zinc-300">|</span>
+                          <span className="text-violet-600">
+                            B: {f1B.toFixed(1)}%
                           </span>
                         </div>
                       </div>
 
-                      {/* Visual Precision Bar */}
                       <div className="space-y-1">
                         <div className="flex justify-between text-[11px] font-semibold text-zinc-500">
                           <span>Precision (A vs B)</span>
@@ -376,22 +373,21 @@ export default function CompareModelsPage() {
                           </span>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
+                          <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden dark:bg-zinc-800">
                             <div
-                              className="h-full rounded-full bg-blue-600 transition-all"
+                              className="h-full rounded-full bg-[#4d3fa3]"
                               style={{ width: `${precA}%` }}
                             />
                           </div>
-                          <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
+                          <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden dark:bg-zinc-800">
                             <div
-                              className="h-full rounded-full bg-indigo-600 transition-all"
+                              className="h-full rounded-full bg-violet-600"
                               style={{ width: `${precB}%` }}
                             />
                           </div>
                         </div>
                       </div>
 
-                      {/* Visual Recall Bar */}
                       <div className="space-y-1">
                         <div className="flex justify-between text-[11px] font-semibold text-zinc-500">
                           <span>Recall (A vs B)</span>
@@ -400,40 +396,16 @@ export default function CompareModelsPage() {
                           </span>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
+                          <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden dark:bg-zinc-800">
                             <div
-                              className="h-full rounded-full bg-blue-500 transition-all"
+                              className="h-full rounded-full bg-[#4d3fa3]"
                               style={{ width: `${recA}%` }}
                             />
                           </div>
-                          <div className="h-2.5 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
+                          <div className="h-2 w-full rounded-full bg-zinc-200 overflow-hidden dark:bg-zinc-800">
                             <div
-                              className="h-full rounded-full bg-indigo-500 transition-all"
+                              className="h-full rounded-full bg-violet-600"
                               style={{ width: `${recB}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Visual F1 Score Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] font-bold text-zinc-700 dark:text-zinc-300">
-                          <span>F1-Score (A vs B)</span>
-                          <span className="font-mono">
-                            {f1A.toFixed(1)}% vs {f1B.toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="h-3 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all"
-                              style={{ width: `${f1A}%` }}
-                            />
-                          </div>
-                          <div className="h-3 w-full rounded-full bg-zinc-100 overflow-hidden dark:bg-zinc-800">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all"
-                              style={{ width: `${f1B}%` }}
                             />
                           </div>
                         </div>

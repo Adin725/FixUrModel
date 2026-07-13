@@ -15,6 +15,7 @@ import {
   History,
   FileSpreadsheet,
   Hash,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -108,7 +109,7 @@ export default function GroundTruthPage() {
     setPendingDataset(null);
     setShowValidationModal(false);
     setUploadStatus(
-      "Ground Truth berhasil diperbarui dan tersinkronisasi instan ke seluruh device."
+      "Ground Truth berhasil diperbarui dan tersinkronisasi ke seluruh perangkat."
     );
   };
 
@@ -126,18 +127,20 @@ export default function GroundTruthPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-12">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/80 pb-6 dark:border-zinc-800">
+    <div className="mx-auto max-w-7xl space-y-7 pb-14">
+      {/* Hero Bento Header */}
+      <div className="pin-card pin-card-lavender flex flex-wrap items-center justify-between gap-6 p-7">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-            Manajemen Metadata Tabular
-          </span>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-            Data Test &amp; Acuan Ground Truth
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+            <Sparkles className="h-3 w-3" />
+            <span>Manajemen Ground Truth</span>
+          </div>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white sm:text-3xl">
+            Data Tes &amp; Acuan Ground Truth
           </h1>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
             Versi Ground Truth Aktif:{" "}
-            <strong className="font-mono font-bold text-zinc-900 dark:text-white">
+            <strong className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
               {activeGtVersion}
             </strong>{" "}
             ({dataset.length} sampel metadata terindeks)
@@ -146,100 +149,103 @@ export default function GroundTruthPage() {
 
         <Link
           href="/history"
-          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#4d3fa3] px-5 py-3 text-xs font-black text-white shadow-lg transition-transform active:scale-95 hover:bg-[#3d3185]"
         >
-          <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <History className="h-4 w-4" />
           <span>Audit Riwayat Ground Truth</span>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+      {/* Bento Stats Grid */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="pin-card pin-card-sky p-5">
+          <div className="text-[11px] font-black uppercase tracking-wider text-indigo-950/70 dark:text-indigo-200">
             Total Sampel
           </div>
-          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+          <div className="mt-2 font-mono text-3xl font-black text-indigo-950 dark:text-white">
             {counts.total}
           </div>
-          <div className="mt-1 text-xs text-zinc-500">Terindeks di sistem</div>
+          <div className="mt-1 text-xs font-semibold text-indigo-900/70 dark:text-indigo-300">
+            Terindeks di sistem
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
+        <div className="pin-card pin-card-mint p-5">
+          <div className="text-[11px] font-black uppercase tracking-wider text-emerald-950/70 dark:text-emerald-200">
             0 — Recyclable
           </div>
-          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+          <div className="mt-2 font-mono text-3xl font-black text-emerald-950 dark:text-white">
             {counts.class0}
           </div>
-          <div className="mt-1 text-xs text-zinc-500">
+          <div className="mt-1 text-xs font-semibold text-emerald-900/70 dark:text-emerald-300">
             {(counts.total > 0
               ? (counts.class0 / counts.total) * 100
               : 0
             ).toFixed(1)}
-            % dari proporsi dataset
+            % proporsi
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
+        <div className="pin-card pin-card-lavender p-5">
+          <div className="text-[11px] font-black uppercase tracking-wider text-violet-950/70 dark:text-violet-200">
             1 — Electronic
           </div>
-          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+          <div className="mt-2 font-mono text-3xl font-black text-violet-950 dark:text-white">
             {counts.class1}
           </div>
-          <div className="mt-1 text-xs text-zinc-500">
+          <div className="mt-1 text-xs font-semibold text-violet-900/70 dark:text-violet-300">
             {(counts.total > 0
               ? (counts.class1 / counts.total) * 100
               : 0
             ).toFixed(1)}
-            % dari proporsi dataset
+            % proporsi
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-red-600">
+        <div className="pin-card pin-card-rose p-5">
+          <div className="text-[11px] font-black uppercase tracking-wider text-rose-950/70 dark:text-rose-200">
             2 — Organic
           </div>
-          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+          <div className="mt-2 font-mono text-3xl font-black text-rose-950 dark:text-white">
             {counts.class2}
           </div>
-          <div className="mt-1 text-xs text-zinc-500">
+          <div className="mt-1 text-xs font-semibold text-rose-900/70 dark:text-rose-300">
             {(counts.total > 0
               ? (counts.class2 / counts.total) * 100
               : 0
             ).toFixed(1)}
-            % dari proporsi dataset
+            % proporsi
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+      {/* Upload CSV Bento Card */}
+      <div className="pin-card p-6">
         <div className="flex items-center gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
             <FileSpreadsheet className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
-              Unggah File CSV Ground Truth (Tabular Metadata)
+            <h2 className="text-base font-black text-zinc-900 dark:text-white">
+              Unggah File CSV Ground Truth (Metadata Tabular)
             </h2>
             <p className="text-xs text-zinc-500">
-              Format CSV yang didukung: <code>ID,GroundTruth</code> dengan angka
-              0, 1, 2
+              Format CSV: <code>ID,GroundTruth</code> dengan angka 0, 1, 2
             </p>
           </div>
         </div>
 
-        <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center transition-colors hover:border-blue-500 dark:border-zinc-700 dark:bg-zinc-950/40">
+        <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center transition-colors hover:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-950/40">
           <Upload className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
           <p className="mt-3 text-xs font-bold text-zinc-800 dark:text-zinc-200">
-            Pilih atau seret file CSV Ground Truth ke area ini
+            Pilih file CSV Ground Truth untuk memperbarui referensi
           </p>
           <p className="mt-1 text-[11px] text-zinc-500">
-            Sistem memproses metadata tabular dan langsung memperbarui evaluasi
-            seluruh submission
+            Sistem memproses metadata tabular dan memperbarui evaluasi seluruh
+            submission
           </p>
 
-          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700">
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[#4d3fa3] px-6 py-3 text-xs font-black text-white shadow-sm hover:bg-[#3d3185]">
             <span>Pilih File CSV</span>
             <input
               type="file"
@@ -251,79 +257,75 @@ export default function GroundTruthPage() {
         </div>
 
         {uploadStatus && (
-          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-xs font-medium text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50 p-3.5 text-xs font-bold text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-indigo-600" />
             <span>{uploadStatus}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
-            <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs font-bold text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-5 flex items-center justify-between border-b border-zinc-100 pb-4 dark:border-zinc-800">
-          <div>
-            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
-              Tabel Terindeks Ground Truth ({dataset.length} Sampel)
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Daftar seluruh sampel metadata beserta label referensi
-            </p>
-          </div>
+      {/* Table Metadata Bento Card */}
+      <div className="pin-card overflow-hidden">
+        <div className="border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
+          <h2 className="text-base font-black text-zinc-900 dark:text-white">
+            Daftar Metadata Ground Truth ({dataset.length} Sampel)
+          </h2>
+          <p className="text-xs text-zinc-500">
+            Daftar sampel dan label referensi terindeks
+          </p>
         </div>
 
         {dataset.length === 0 ? (
-          <div className="py-12 text-center text-xs text-zinc-400">
+          <div className="py-14 text-center text-xs font-semibold text-zinc-400">
             Belum ada sampel metadata terindeks. Unggah CSV untuk memulai.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
+            <table className="pin-table min-w-[600px]">
               <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-                  <th className="p-3.5">ID Sampel</th>
-                  <th className="p-3.5">Kode Angka</th>
-                  <th className="p-3.5">Label Kelas</th>
-                  <th className="p-3.5">Status Agreement</th>
+                <tr>
+                  <th className="w-32">ID Sampel</th>
+                  <th className="w-32">Kode Angka</th>
+                  <th>Label Kelas</th>
+                  <th>Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody>
                 {dataset.slice(0, 100).map((item) => {
                   const num = mapClassLabelToNumeric(item.groundTruthLabel);
-                  const badgeColor =
+                  const badgeClass =
                     num === 0
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
                       : num === 1
-                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                      : "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300";
+                      ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+                      : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300";
 
                   return (
-                    <tr
-                      key={item.id}
-                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                    >
-                      <td className="p-3.5 font-mono font-bold text-zinc-900 dark:text-white">
+                    <tr key={item.id}>
+                      <td className="font-mono font-black text-zinc-900 dark:text-white">
                         <div className="flex items-center gap-1.5">
                           <Hash className="h-3.5 w-3.5 text-zinc-400" />
                           <span>#{item.id}</span>
                         </div>
                       </td>
-                      <td className="p-3.5 font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                      <td className="font-mono font-bold text-zinc-700 dark:text-zinc-300">
                         {num}
                       </td>
-                      <td className="p-3.5">
+                      <td>
                         <span
-                          className={`inline-block rounded-md px-2.5 py-1 text-[11px] font-bold ${badgeColor}`}
+                          className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${badgeClass}`}
                         >
                           {item.groundTruthLabel}
                         </span>
                       </td>
-                      <td className="p-3.5 text-zinc-500 dark:text-zinc-400">
+                      <td className="text-xs text-zinc-500 dark:text-zinc-400">
                         Consensus Terverifikasi
                       </td>
                     </tr>
@@ -332,7 +334,7 @@ export default function GroundTruthPage() {
               </tbody>
             </table>
             {dataset.length > 100 && (
-              <div className="border-t border-zinc-100 p-3 text-center text-xs text-zinc-400 dark:border-zinc-800">
+              <div className="border-t border-zinc-100 p-4 text-center text-xs text-zinc-400 dark:border-zinc-800">
                 Menampilkan 100 pertama dari {dataset.length} sampel metadata.
               </div>
             )}
