@@ -3,21 +3,35 @@
 import React, { useState } from "react";
 import { DatasetItem } from "@/types";
 import { useAppStore } from "@/lib/store";
-import { mapNumericToClassLabel, mapClassLabelToNumeric } from "@/lib/evaluator";
+import {
+  mapNumericToClassLabel,
+  mapClassLabelToNumeric,
+} from "@/lib/evaluator";
 import { GtValidationModal } from "@/components/gt/GtValidationModal";
-import { ItemThumbnail } from "@/components/ui/ItemThumbnail";
-import { Upload, AlertCircle, CheckCircle2, History, FileSpreadsheet, Hash } from "lucide-react";
+import {
+  Upload,
+  AlertCircle,
+  CheckCircle2,
+  History,
+  FileSpreadsheet,
+  Hash,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function GroundTruthPage() {
   const { dataset, activeGtVersion, updateGroundTruthDataset } = useAppStore();
 
-  const [pendingDataset, setPendingDataset] = useState<DatasetItem[] | null>(null);
+  const [pendingDataset, setPendingDataset] = useState<DatasetItem[] | null>(
+    null
+  );
   const [csvFileName, setCsvFileName] = useState("");
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [csvInfo, setCsvInfo] = useState<{ totalIds: number; totalLabels: number } | null>(null);
+  const [csvInfo, setCsvInfo] = useState<{
+    totalIds: number;
+    totalLabels: number;
+  } | null>(null);
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,7 +54,10 @@ export default function GroundTruthPage() {
         if (isNaN(id)) continue;
 
         let labelRaw = parts[1].replace(/['"]/g, "");
-        if (parts.length >= 3 && (labelRaw.endsWith(".jpg") || labelRaw.endsWith(".png"))) {
+        if (
+          parts.length >= 3 &&
+          (labelRaw.endsWith(".jpg") || labelRaw.endsWith(".png"))
+        ) {
           labelRaw = parts[2].replace(/['"]/g, "");
         }
 
@@ -56,14 +73,21 @@ export default function GroundTruthPage() {
 
     if (emptyRows.length > 0) {
       setErrorMessage(
-        `Ditemukan ${emptyRows.length} baris tanpa label pada ID: ${emptyRows.slice(0, 10).map((id) => `#${id}`).join(", ")}${emptyRows.length > 10 ? ` ...dan ${emptyRows.length - 10} lainnya` : ""}. Perbaiki file terlebih dahulu.`
+        `Ditemukan ${emptyRows.length} baris tanpa label pada ID: ${emptyRows
+          .slice(0, 10)
+          .map((id) => `#${id}`)
+          .join(", ")}${
+          emptyRows.length > 10 ? ` ...dan ${emptyRows.length - 10} lainnya` : ""
+        }. Perbaiki file terlebih dahulu.`
       );
       setUploadStatus("");
       return;
     }
 
     if (parsed.length === 0) {
-      setErrorMessage("Gagal membaca CSV. Format kolom: ID,GroundTruth dengan angka 0 (Recyclable), 1 (Electronic), 2 (Organic).");
+      setErrorMessage(
+        "Gagal membaca CSV. Format kolom: ID,GroundTruth dengan angka 0 (Recyclable), 1 (Electronic), 2 (Organic)."
+      );
       setUploadStatus("");
       return;
     }
@@ -73,7 +97,9 @@ export default function GroundTruthPage() {
     setCsvInfo({ totalIds: parsed.length, totalLabels });
     setPendingDataset(parsed);
     setShowValidationModal(true);
-    setUploadStatus(`Ditemukan ${parsed.length} sampel — ${totalLabels} label terbaca. Siap divalidasi.`);
+    setUploadStatus(
+      `Ditemukan ${parsed.length} sampel — ${totalLabels} label terbaca. Siap divalidasi.`
+    );
   };
 
   const handleApplyValidatedGT = (reason: string) => {
@@ -81,229 +107,246 @@ export default function GroundTruthPage() {
     updateGroundTruthDataset(pendingDataset, reason);
     setPendingDataset(null);
     setShowValidationModal(false);
-    setUploadStatus("Ground Truth & Metadata Dataset berhasil diperbarui dan tersinkronisasi instan ke seluruh device.");
+    setUploadStatus(
+      "Ground Truth berhasil diperbarui dan tersinkronisasi instan ke seluruh device."
+    );
   };
 
   const counts = {
     total: dataset.length,
-    class0: dataset.filter((d) => mapClassLabelToNumeric(d.groundTruthLabel) === 0).length,
-    class1: dataset.filter((d) => mapClassLabelToNumeric(d.groundTruthLabel) === 1).length,
-    class2: dataset.filter((d) => mapClassLabelToNumeric(d.groundTruthLabel) === 2).length,
-  };
-
-  const sectionStyle: React.CSSProperties = {
-    background: "#fff", borderRadius: "14px",
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 1px 3px rgba(15,27,53,0.05)",
-    padding: "24px",
-    display: "flex", flexDirection: "column", gap: "16px",
-  };
-
-  const dropzoneStyle: React.CSSProperties = {
-    borderRadius: "10px", border: "2px dashed #cbd5e1",
-    background: "#f8fafc", padding: "24px",
-    display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", gap: "8px", cursor: "pointer",
-    textAlign: "center", transition: "all 0.15s",
+    class0: dataset.filter(
+      (d) => mapClassLabelToNumeric(d.groundTruthLabel) === 0
+    ).length,
+    class1: dataset.filter(
+      (d) => mapClassLabelToNumeric(d.groundTruthLabel) === 1
+    ).length,
+    class2: dataset.filter(
+      (d) => mapClassLabelToNumeric(d.groundTruthLabel) === 2
+    ).length,
   };
 
   return (
-    <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+    <div className="mx-auto max-w-6xl space-y-8 pb-12">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200/80 pb-6 dark:border-zinc-800">
         <div>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            background: "#eff6ff", borderRadius: "8px", padding: "4px 10px",
-            fontSize: "10.5px", fontWeight: 700, color: "#1d4ed8", marginBottom: "8px",
-          }}>
-            Data Preparation & Management (Metadata Only)
-          </div>
-          <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f1b35", letterSpacing: "-0.4px" }}>
-            Data Test & Ground Truth
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+            Manajemen Metadata Tabular
+          </span>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+            Data Test &amp; Acuan Ground Truth
           </h1>
-          <p style={{ fontSize: "12.5px", color: "#94a3b8", marginTop: "4px" }}>
-            Unggah CSV Ground Truth (ID Sampel & Kode Angka 0, 1, 2) untuk sinkronisasi evaluasi model
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Versi Ground Truth Aktif:{" "}
+            <strong className="font-mono font-bold text-zinc-900 dark:text-white">
+              {activeGtVersion}
+            </strong>{" "}
+            ({dataset.length} sampel metadata terindeks)
           </p>
         </div>
+
         <Link
           href="/history"
-          style={{
-            display: "inline-flex", alignItems: "center", gap: "7px",
-            padding: "9px 16px", borderRadius: "9px",
-            border: "1px solid #e2e8f0", background: "#fff",
-            fontSize: "12px", fontWeight: 600, color: "#475569",
-            textDecoration: "none",
-          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-700 shadow-2xs transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          <History style={{ width: "14px", height: "14px", color: "#1d4ed8" }} />
-          Riwayat Audit GT
+          <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <span>Audit Riwayat Ground Truth</span>
         </Link>
       </div>
 
-      {/* Error message */}
-      {errorMessage && (
-        <div style={{
-          display: "flex", alignItems: "flex-start", gap: "10px",
-          background: "#fef2f2", border: "1px solid #fecaca",
-          borderRadius: "10px", padding: "12px 16px",
-        }}>
-          <AlertCircle style={{ width: "15px", height: "15px", color: "#dc2626", flexShrink: 0, marginTop: "1px" }} />
-          <span style={{ fontSize: "12px", color: "#991b1b", lineHeight: 1.5 }}>{errorMessage}</span>
-        </div>
-      )}
-
-      {/* Success info */}
-      {uploadStatus && !errorMessage && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: "10px",
-          background: "#f0fdf4", border: "1px solid #bbf7d0",
-          borderRadius: "10px", padding: "12px 16px",
-        }}>
-          <CheckCircle2 style={{ width: "15px", height: "15px", color: "#16a34a", flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>{uploadStatus}</span>
-        </div>
-      )}
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <span className="text-xs font-semibold text-zinc-400">Total Sampel Metadata</span>
-          <div className="mt-1 font-mono text-2xl font-bold text-zinc-900 dark:text-white">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+            Total Sampel
+          </div>
+          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
             {counts.total}
           </div>
+          <div className="mt-1 text-xs text-zinc-500">Terindeks di sistem</div>
         </div>
-        <div className="rounded-xl border border-emerald-200/60 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Angka 0 (Recyclable)</span>
-          <div className="mt-1 font-mono text-2xl font-bold text-emerald-800 dark:text-emerald-300">
+
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
+            0 — Recyclable
+          </div>
+          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
             {counts.class0}
           </div>
-        </div>
-        <div className="rounded-xl border border-amber-200/60 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Angka 1 (Electronic)</span>
-          <div className="mt-1 font-mono text-2xl font-bold text-amber-800 dark:text-amber-300">
-            {counts.class1}
+          <div className="mt-1 text-xs text-zinc-500">
+            {(counts.total > 0
+              ? (counts.class0 / counts.total) * 100
+              : 0
+            ).toFixed(1)}
+            % dari proporsi dataset
           </div>
         </div>
-        <div className="rounded-xl border border-red-200/60 bg-red-50/40 p-4 dark:border-red-900/40 dark:bg-red-950/20">
-          <span className="text-xs font-semibold text-red-700 dark:text-red-400">Angka 2 (Organic)</span>
-          <div className="mt-1 font-mono text-2xl font-bold text-red-800 dark:text-red-300">
+
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-600">
+            1 — Electronic
+          </div>
+          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+            {counts.class1}
+          </div>
+          <div className="mt-1 text-xs text-zinc-500">
+            {(counts.total > 0
+              ? (counts.class1 / counts.total) * 100
+              : 0
+            ).toFixed(1)}
+            % dari proporsi dataset
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-red-600">
+            2 — Organic
+          </div>
+          <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
             {counts.class2}
+          </div>
+          <div className="mt-1 text-xs text-zinc-500">
+            {(counts.total > 0
+              ? (counts.class2 / counts.total) * 100
+              : 0
+            ).toFixed(1)}
+            % dari proporsi dataset
           </div>
         </div>
       </div>
 
-      {/* Cards Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
-
-        {/* CSV Upload */}
-        <div style={sectionStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <FileSpreadsheet style={{ width: "18px", height: "18px", color: "#1d4ed8" }} />
-            </div>
-            <div>
-              <h2 style={{ fontSize: "14px", fontWeight: 800, color: "#0f1b35" }}>
-                Unggah & Inisialisasi Metadata Ground Truth (CSV)
-              </h2>
-              <p style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "1px" }}>
-                Format kolom: ID,GroundTruth (angka 0, 1, atau 2)
-              </p>
-            </div>
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center gap-3 border-b border-zinc-100 pb-4 dark:border-zinc-800">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+            <FileSpreadsheet className="h-5 w-5" />
           </div>
-
-          <div style={{ background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", padding: "12px 14px" }}>
-            <p style={{ fontSize: "12px", color: "#475569", lineHeight: 1.6 }}>
-              Unggah file CSV untuk menginisialisasi atau memperbarui metadata sampel dan acuan Ground Truth.
-              Kode angka label:{" "}
-              <span style={{ fontWeight: 700, color: "#0f1b35" }}>0</span> = Recyclable,{" "}
-              <span style={{ fontWeight: 700, color: "#0f1b35" }}>1</span> = Electronic,{" "}
-              <span style={{ fontWeight: 700, color: "#0f1b35" }}>2</span> = Organic.
+          <div>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
+              Unggah File CSV Ground Truth (Tabular Metadata)
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Format CSV yang didukung: <code>ID,GroundTruth</code> dengan angka
+              0, 1, 2
             </p>
           </div>
+        </div>
 
-          <label
-            style={dropzoneStyle}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1d4ed8"; e.currentTarget.style.background = "#eff6ff"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc"; }}
-          >
-            <Upload style={{ width: "28px", height: "28px", color: "#1d4ed8" }} />
-            <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f1b35" }}>
-              Pilih File CSV Ground Truth (.csv)
-            </span>
-            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-              Contoh isi baris: 1,0 / 2,1 / 3,2 ...
-            </span>
-            <input type="file" accept=".csv" onChange={handleCsvUpload} style={{ display: "none" }} />
+        <div className="mt-5 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 bg-zinc-50/60 p-8 text-center transition-colors hover:border-blue-500 dark:border-zinc-700 dark:bg-zinc-950/40">
+          <Upload className="h-8 w-8 text-zinc-400 dark:text-zinc-500" />
+          <p className="mt-3 text-xs font-bold text-zinc-800 dark:text-zinc-200">
+            Pilih atau seret file CSV Ground Truth ke area ini
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Sistem memproses metadata tabular dan langsung memperbarui evaluasi
+            seluruh submission
+          </p>
+
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700">
+            <span>Pilih File CSV</span>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleCsvUpload}
+              className="hidden"
+            />
           </label>
+        </div>
 
-          {csvInfo && (
-            <div style={{
-              background: "#f0fdf4", border: "1px solid #bbf7d0",
-              borderRadius: "8px", padding: "10px 14px",
-              display: "flex", alignItems: "center", gap: "8px",
-            }}>
-              <CheckCircle2 style={{ width: "14px", height: "14px", color: "#16a34a" }} />
-              <div style={{ fontSize: "12px", color: "#15803d" }}>
-                <strong>{csvInfo.totalIds} ID gambar</strong> terbaca &bull;{" "}
-                <strong>{csvInfo.totalLabels} label</strong> valid siap disinkronkan
-              </div>
-            </div>
-          )}
+        {uploadStatus && (
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-blue-200 bg-blue-50 p-3.5 text-xs font-medium text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>{uploadStatus}</span>
+          </div>
+        )}
 
-          <div style={{ background: "#f8fafc", borderRadius: "10px", border: "1px solid #f1f5f9", padding: "14px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-              <span style={{ fontSize: "11.5px", fontWeight: 600, color: "#475569" }}>Acuan GT Aktif:</span>
-              <span style={{ fontSize: "11.5px", fontWeight: 800, color: "#1d4ed8", fontFamily: "monospace" }}>
-                Versi {activeGtVersion} ({dataset.length} sampel)
-              </span>
-            </div>
-            <p style={{ fontSize: "11px", color: "#94a3b8", lineHeight: 1.5 }}>
-              Setelah dikonfirmasi, metadata sampel dan Ground Truth akan tersinkronisasi instan ke seluruh device tanpa pemuatan gambar.
+        {errorMessage && (
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+            <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mb-5 flex items-center justify-between border-b border-zinc-100 pb-4 dark:border-zinc-800">
+          <div>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">
+              Tabel Terindeks Ground Truth ({dataset.length} Sampel)
+            </h2>
+            <p className="text-xs text-zinc-500">
+              Daftar seluruh sampel metadata beserta label referensi
             </p>
           </div>
         </div>
 
-        {/* Sample Metadata Grid */}
-        <div style={sectionStyle}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-blue-600" />
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-                Daftar Sampel Dataset Terindeks ({dataset.length} sampel)
-              </h3>
-            </div>
-            <span className="text-xs font-mono text-zinc-400">
-              Versi Aktif: {activeGtVersion}
-            </span>
+        {dataset.length === 0 ? (
+          <div className="py-12 text-center text-xs text-zinc-400">
+            Belum ada sampel metadata terindeks. Unggah CSV untuk memulai.
           </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-zinc-50 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                  <th className="p-3.5">ID Sampel</th>
+                  <th className="p-3.5">Kode Angka</th>
+                  <th className="p-3.5">Label Kelas</th>
+                  <th className="p-3.5">Status Agreement</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                {dataset.slice(0, 100).map((item) => {
+                  const num = mapClassLabelToNumeric(item.groundTruthLabel);
+                  const badgeColor =
+                    num === 0
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      : num === 1
+                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                      : "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300";
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 max-h-96 overflow-y-auto p-1">
-            {dataset.map((item) => (
-              <ItemThumbnail
-                key={item.id}
-                id={item.id}
-                imageNumber={item.imageNumber}
-                label={item.groundTruthLabel}
-                size="md"
-              />
-            ))}
+                  return (
+                    <tr
+                      key={item.id}
+                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    >
+                      <td className="p-3.5 font-mono font-bold text-zinc-900 dark:text-white">
+                        <div className="flex items-center gap-1.5">
+                          <Hash className="h-3.5 w-3.5 text-zinc-400" />
+                          <span>#{item.id}</span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                        {num}
+                      </td>
+                      <td className="p-3.5">
+                        <span
+                          className={`inline-block rounded-md px-2.5 py-1 text-[11px] font-bold ${badgeColor}`}
+                        >
+                          {item.groundTruthLabel}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-zinc-500 dark:text-zinc-400">
+                        Consensus Terverifikasi
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {dataset.length > 100 && (
+              <div className="border-t border-zinc-100 p-3 text-center text-xs text-zinc-400 dark:border-zinc-800">
+                Menampilkan 100 pertama dari {dataset.length} sampel metadata.
+              </div>
+            )}
           </div>
-          {dataset.length === 0 && (
-            <div className="py-10 text-center text-xs text-zinc-400">
-              Belum ada sampel terindeks. Silakan unggah file CSV Ground Truth di atas.
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <GtValidationModal
         isOpen={showValidationModal}
         onClose={() => setShowValidationModal(false)}
-        onConfirm={handleApplyValidatedGT}
-        dataset={pendingDataset || []}
-        filename={csvFileName}
+        pendingDataset={pendingDataset}
+        csvFileName={csvFileName}
+        csvInfo={csvInfo}
+        onApply={handleApplyValidatedGT}
       />
     </div>
   );

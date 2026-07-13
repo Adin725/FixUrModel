@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   RotateCcw,
@@ -9,6 +9,8 @@ import {
   Database,
   FlaskConical,
   Search,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { downloadLeaderboardPDF } from "@/lib/pdfExport";
 
@@ -17,6 +19,24 @@ export const TopHeader: React.FC = () => {
     useAppStore();
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setIsDarkMode(isDark);
+  }, []);
+
+  const toggleDarkMode = () => {
+    const next = !isDarkMode;
+    setIsDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   const handleConfirmReset = () => {
     resetAllProcessToZero();
@@ -25,122 +45,56 @@ export const TopHeader: React.FC = () => {
 
   return (
     <>
-      <header
-        style={{
-          height: "80px",
-          background: "rgba(244, 246, 252, 0.85)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(226, 232, 240, 0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 32px",
-          position: "sticky",
-          top: 0,
-          zIndex: 30,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "16px",
-            flex: 1,
-            maxWidth: "480px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              background: "#ffffff",
-              border: "1px solid rgba(226, 232, 240, 0.8)",
-              borderRadius: "9999px",
-              padding: "8px 18px",
-              width: "100%",
-              boxShadow: "0 4px 14px rgba(18, 26, 68, 0.03)",
-            }}
-          >
-            <Search
-              style={{ width: "16px", height: "16px", color: "#64748b" }}
-            />
+      <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-zinc-200/80 bg-white/80 px-8 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
+        <div className="flex flex-1 items-center gap-4 max-w-md">
+          <div className="flex w-full items-center gap-2.5 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-zinc-800 transition-colors focus-within:border-blue-500 focus-within:bg-white dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:focus-within:border-blue-500 dark:focus-within:bg-zinc-900">
+            <Search className="h-4 w-4 text-zinc-400 shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama eksperimen, model, atau anggota tim..."
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "#0f1b35",
-                background: "transparent",
-                width: "100%",
-              }}
+              placeholder="Cari eksperimen, arsitektur, atau peneliti..."
+              className="w-full bg-transparent text-xs font-medium outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
             />
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "#ffffff",
-              borderRadius: "9999px",
-              padding: "7px 14px",
-              border: "1px solid rgba(226, 232, 240, 0.8)",
-              boxShadow: "0 2px 8px rgba(18, 26, 68, 0.03)",
-            }}
-          >
-            <Database
-              style={{ width: "14px", height: "14px", color: "#2563eb" }}
-            />
-            <span
-              style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}
-            >
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white px-3.5 py-1.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <Database className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
               GT:{" "}
-              <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>
+              <strong className="font-mono text-blue-600 dark:text-blue-400">
                 {activeGtVersion}
               </strong>
             </span>
-            <span
-              style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}
-            >
+            <span className="text-[11px] font-medium text-zinc-500">
               ({dataset.length} sampel)
             </span>
           </div>
 
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "7px",
-              background: "#ffffff",
-              borderRadius: "9999px",
-              padding: "7px 14px",
-              border: "1px solid rgba(226, 232, 240, 0.8)",
-              boxShadow: "0 2px 8px rgba(18, 26, 68, 0.03)",
-            }}
-          >
-            <FlaskConical
-              style={{ width: "14px", height: "14px", color: "#10b981" }}
-            />
-            <span
-              style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b" }}
-            >
+          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white px-3.5 py-1.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <FlaskConical className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
               Run:{" "}
-              <strong
-                style={{ fontFamily: "monospace", color: "#0f1b35" }}
-              >
+              <strong className="font-mono text-zinc-900 dark:text-white">
                 {submissions.length}
               </strong>
             </span>
           </div>
+
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200/80 bg-white text-zinc-600 shadow-2xs transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            title={isDarkMode ? "Beralih ke Mode Terang" : "Beralih ke Mode Gelap"}
+          >
+            {isDarkMode ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-zinc-600" />
+            )}
+          </button>
 
           <button
             type="button"
@@ -151,162 +105,59 @@ export const TopHeader: React.FC = () => {
                 dataset.length
               )
             }
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "#111836",
-              color: "#ffffff",
-              borderRadius: "9999px",
-              padding: "9px 18px",
-              fontSize: "12.5px",
-              fontWeight: 700,
-              cursor: "pointer",
-              border: "none",
-              boxShadow: "0 6px 16px rgba(17, 24, 54, 0.18)",
-              transition: "all 0.2s ease",
-            }}
-            className="hover:bg-[#1e295d]"
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            <Download style={{ width: "14px", height: "14px" }} />
+            <Download className="h-3.5 w-3.5" />
             <span>Export Laporan</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsResetModalOpen(true)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "7px",
-              background: "#ffffff",
-              color: "#ef4444",
-              borderRadius: "9999px",
-              padding: "9px 16px",
-              fontSize: "12.5px",
-              fontWeight: 700,
-              cursor: "pointer",
-              border: "1px solid #fecaca",
-              transition: "all 0.2s ease",
-            }}
-            className="hover:bg-[#fef2f2]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white px-3.5 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/40 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950/30"
           >
-            <RotateCcw style={{ width: "14px", height: "14px" }} />
+            <RotateCcw className="h-3.5 w-3.5" />
             <span>Reset</span>
           </button>
         </div>
       </header>
 
       {isResetModalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(15,27,53,0.55)",
-            backdropFilter: "blur(6px)",
-            padding: "20px",
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "440px",
-              background: "#fff",
-              borderRadius: "24px",
-              border: "1px solid #fecaca",
-              boxShadow: "0 25px 60px rgba(15,27,53,0.18)",
-              padding: "32px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-                marginBottom: "18px",
-              }}
-            >
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "16px",
-                  background: "#fef2f2",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ShieldAlert
-                  style={{ width: "24px", height: "24px", color: "#dc2626" }}
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 dark:bg-red-950/60">
+                <ShieldAlert className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3
-                  style={{ fontSize: "18px", fontWeight: 800, color: "#0f1b35" }}
-                >
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
                   Konfirmasi Reset Platform
                 </h3>
-                <p style={{ fontSize: "12.5px", color: "#64748b" }}>
+                <p className="text-xs text-zinc-500">
                   Tindakan ini tidak dapat dibatalkan
                 </p>
               </div>
             </div>
 
-            <p
-              style={{
-                fontSize: "13px",
-                color: "#475569",
-                lineHeight: 1.6,
-                marginBottom: "24px",
-              }}
-            >
+            <p className="mb-6 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
               Anda akan mereset seluruh data submission eksperimen dan
               mengembalikan versi Ground Truth ke kondisi awal (0 sampel
-              terindeks). Platform akan kembali bersih untuk putaran eksperimen
+              terindeks). Platform akan kembali bersih untuk putaran penelitian
               baru.
             </p>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "10px",
-              }}
-            >
+            <div className="flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsResetModalOpen(false)}
-                style={{
-                  background: "#f1f5f9",
-                  color: "#475569",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "10px 18px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="rounded-xl bg-zinc-100 px-4 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReset}
-                style={{
-                  background: "#dc2626",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "10px 18px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
+                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700"
               >
                 Ya, Reset Seluruh Data
               </button>

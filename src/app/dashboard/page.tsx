@@ -9,101 +9,20 @@ import {
   Users,
   Database,
   Award,
-  ArrowRight,
-  TrendingUp,
-  Activity,
   FileArchive,
   GitBranch,
-  Sparkles,
-  Layers,
   ArrowUpRight,
 } from "lucide-react";
 
-const BentoStatCard = ({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  badgeGradient,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub: string;
-  icon: React.ElementType;
-  badgeGradient: string;
-}) => (
-  <div
-    className="nk-card nk-card-hover"
-    style={{
-      padding: "26px",
-      display: "flex",
-      alignItems: "center",
-      gap: "20px",
-    }}
-  >
-    <div
-      style={{
-        width: "64px",
-        height: "64px",
-        borderRadius: "20px",
-        background: badgeGradient,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        boxShadow: "0 10px 24px -6px rgba(15, 27, 53, 0.25)",
-      }}
-    >
-      <Icon style={{ width: "26px", height: "26px", color: "#ffffff" }} />
-    </div>
-    <div style={{ minWidth: 0, flex: 1 }}>
-      <div
-        style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#64748b",
-          marginBottom: "4px",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: "30px",
-          fontWeight: 900,
-          color: "#0f1b35",
-          lineHeight: 1.1,
-          fontFamily: "monospace",
-          letterSpacing: "-0.8px",
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          fontSize: "12px",
-          color: "#94a3b8",
-          marginTop: "4px",
-          fontWeight: 500,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {sub}
-      </div>
-    </div>
-  </div>
-);
-
 export default function DashboardPage() {
-  const { submissions, users, activeGtVersion, dataset, activityLogs } = useAppStore();
+  const { submissions, users, activeGtVersion, dataset, activityLogs } =
+    useAppStore();
 
   const bestModel =
     submissions.length > 0
-      ? submissions.reduce((best, curr) => (curr.testMacroF1 > best.testMacroF1 ? curr : best))
+      ? submissions.reduce((best, curr) =>
+          curr.testMacroF1 > best.testMacroF1 ? curr : best
+        )
       : null;
 
   const topThree = [...submissions]
@@ -114,410 +33,263 @@ export default function DashboardPage() {
     .sort((a, b) => b.testMacroF1 - a.testMacroF1)
     .slice(0, 5);
 
-  const badgeColors = [
-    { bg: "#EFF6FF", border: "#BFDBFE", text: "#1D4ED8", tag: "Blue Badge" },
-    { bg: "#FDF2F8", border: "#FBCFE8", text: "#BE185D", tag: "Pink Badge" },
-    { bg: "#FFF7ED", border: "#FED7AA", text: "#C2410C", tag: "Orange Badge" },
-  ];
-
   return (
-    <div
-      style={{
-        maxWidth: "1360px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: "32px",
-      }}
-    >
-      {/* Bento Storytelling Section 1: Welcome Banner & Primary Actions */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "20px",
-          flexWrap: "wrap",
-        }}
-      >
+    <div className="mx-auto max-w-7xl space-y-8 pb-12">
+      <div className="flex flex-wrap items-center justify-between gap-6 border-b border-zinc-200/80 pb-6 dark:border-zinc-800">
         <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#EEF2FF",
-              color: "#4F46E5",
-              padding: "5px 12px",
-              borderRadius: "9999px",
-              fontSize: "11px",
-              fontWeight: 800,
-              letterSpacing: "0.05em",
-              marginBottom: "10px",
-            }}
-          >
-            <Sparkles style={{ width: "13px", height: "13px" }} />
-            AI RESEARCH EXPERIMENT PLATFORM
-          </div>
-          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0f1b35", letterSpacing: "-0.6px" }}>
-            Ekosistem Evaluasi &amp; Observasi Model CV
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+            Pusat Kendali Peneliti
+          </span>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+            Ringkasan Evaluasi &amp; Peringkat Model
           </h1>
-          <p style={{ fontSize: "14px", color: "#64748b", marginTop: "4px" }}>
-            Pantau trajektori eksperimen, korelasi pseudo-test, dan stabilitas arsitektur secara mendalam.
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Pantau performa submission, korelasi pseudo-test, dan riwayat
+            perubahan Ground Truth secara real-time.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-3">
           <Link
             href="/lineage"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "11px 18px",
-              borderRadius: "9999px",
-              border: "1px solid rgba(226, 232, 240, 0.8)",
-              background: "#ffffff",
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#1e293b",
-              textDecoration: "none",
-              boxShadow: "0 4px 14px rgba(18, 26, 68, 0.03)",
-            }}
-            className="hover:border-blue-300"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-xs font-bold text-zinc-800 shadow-2xs transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
-            <GitBranch style={{ width: "16px", height: "16px", color: "#2563eb" }} />
-            <span>Lineage Tree</span>
+            <GitBranch className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span>Alur Eksperimen</span>
           </Link>
 
           <Link
             href="/ground-truth"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "11px 22px",
-              borderRadius: "9999px",
-              background: "#111836",
-              color: "#ffffff",
-              fontSize: "13px",
-              fontWeight: 700,
-              textDecoration: "none",
-              boxShadow: "0 8px 20px rgba(17, 24, 54, 0.25)",
-            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
           >
-            <FileArchive style={{ width: "16px", height: "16px" }} />
-            <span>Unggah Dataset &amp; GT</span>
+            <FileArchive className="h-4 w-4" />
+            <span>Unggah Ground Truth CSV</span>
           </Link>
         </div>
       </div>
 
-      {/* Bento Row 1: Four Stat Cards (Inspired exactly by Reference Screenshot 1) */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-          gap: "24px",
-        }}
-      >
-        <BentoStatCard
-          label="Total Submission"
-          value={submissions.length}
-          sub="Eksperimen model tersimpan"
-          icon={Trophy}
-          badgeGradient="linear-gradient(135deg, #111836 0%, #1e295d 100%)"
-        />
-        <BentoStatCard
-          label="Anggota Tim"
-          value={users.length}
-          sub="Peneliti aktif AI Studio"
-          icon={Users}
-          badgeGradient="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
-        />
-        <BentoStatCard
-          label="Ground Truth Versi"
-          value={activeGtVersion}
-          sub={`${dataset.length} sampel terindeks`}
-          icon={Database}
-          badgeGradient="linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)"
-        />
-        <BentoStatCard
-          label="Model Terbaik"
-          value={bestModel ? `${(bestModel.testMacroF1 * 100).toFixed(1)}%` : "—"}
-          sub={bestModel ? bestModel.name : "Belum ada eksperimen"}
-          icon={Award}
-          badgeGradient="linear-gradient(135deg, #10b981 0%, #059669 100%)"
-        />
-      </div>
-
-      {/* Bento Row 2: Analytical Core + Top Performers Showcase (Inspired by XFIT KIDS Top Performer) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "24px" }}>
-        {/* Left Core Analysis (8 Cols on Desktop) */}
-        <div style={{ gridColumn: "span 12 / span 12" }} className="xl:col-span-8">
-          <ValidationVsTestAnalysis submissions={submissions} />
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+            <Trophy className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              Total Submission
+            </div>
+            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+              {submissions.length}
+            </div>
+            <div className="truncate text-xs text-zinc-500">
+              Eksperimen model tersimpan
+            </div>
+          </div>
         </div>
 
-        {/* Right Top Performers Bento Showcase (4 Cols on Desktop) */}
-        <div
-          style={{
-            gridColumn: "span 12 / span 12",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-          className="xl:col-span-4"
-        >
-          <div
-            className="nk-card"
-            style={{
-              padding: "26px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-              height: "100%",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#0f1b35" }}>
-                  Model Terbaik Teratas
-                </h3>
-                <p style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                  3 model dengan nilai evaluasi tertinggi
-                </p>
-              </div>
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: "#64748b",
-                  background: "#f1f5f9",
-                  padding: "5px 12px",
-                  borderRadius: "9999px",
-                }}
-              >
-                Teratas
-              </span>
+        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+            <Users className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              Anggota Tim
             </div>
+            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+              {users.length}
+            </div>
+            <div className="truncate text-xs text-zinc-500">
+              Peneliti aktif di platform
+            </div>
+          </div>
+        </div>
 
-            {topThree.length === 0 ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#94a3b8",
-                  fontSize: "13px",
-                  padding: "40px 0",
-                }}
-              >
-                Belum ada submission. Unggah model pertama Anda.
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                {topThree.map((sub, idx) => {
-                  const badge = badgeColors[idx % badgeColors.length];
-                  return (
-                    <div
-                      key={sub.id}
-                      style={{
-                        background: badge.bg,
-                        border: `1px solid ${badge.border}`,
-                        borderRadius: "18px",
-                        padding: "16px 18px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        transition: "transform 0.2s ease",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                        <div
-                          style={{
-                            width: "44px",
-                            height: "44px",
-                            borderRadius: "14px",
-                            background: "#ffffff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "14px",
-                            fontWeight: 900,
-                            color: badge.text,
-                            boxShadow: "0 4px 10px rgba(0,0,0,0.04)",
-                          }}
-                        >
-                          #{idx + 1}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: "14px", fontWeight: 800, color: "#0f1b35" }}>
-                            {sub.name}
-                          </div>
-                          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                            {sub.modelName} &bull; oleh <strong>{sub.leaderboardName}</strong>
-                          </div>
-                        </div>
-                      </div>
+        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cyan-600 text-white shadow-sm">
+            <Database className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              Versi Ground Truth
+            </div>
+            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+              {activeGtVersion}
+            </div>
+            <div className="truncate text-xs text-zinc-500">
+              {dataset.length} sampel terindeks
+            </div>
+          </div>
+        </div>
 
-                      <div style={{ textAlign: "right" }}>
-                        <div
-                          style={{
-                            fontSize: "18px",
-                            fontWeight: 900,
-                            fontFamily: "monospace",
-                            color: badge.text,
-                          }}
-                        >
-                          {(sub.testMacroF1 * 100).toFixed(2)}%
-                        </div>
-                        <span
-                          style={{
-                            display: "inline-block",
-                            background: "#ffffff",
-                            color: badge.text,
-                            padding: "2px 8px",
-                            borderRadius: "9999px",
-                            fontSize: "9.5px",
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            marginTop: "4px",
-                          }}
-                        >
-                          {badge.tag}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        <div className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-600 text-white shadow-sm">
+            <Award className="h-6 w-6" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+              Skor F1 Tertinggi
+            </div>
+            <div className="mt-1 font-mono text-2xl font-black text-zinc-900 dark:text-white">
+              {bestModel
+                ? `${(bestModel.testMacroF1 * 100).toFixed(1)}%`
+                : "—"}
+            </div>
+            <div className="truncate text-xs text-zinc-500">
+              {bestModel ? bestModel.name : "Belum ada eksperimen"}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bento Row 3: Leaderboard Preview + Quick Activity Feed */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "24px" }}>
-        {/* Leaderboard Table Card */}
-        <div style={{ gridColumn: "span 12 / span 12" }} className="xl:col-span-8">
-          <div className="nk-card" style={{ overflow: "hidden" }}>
-            <div
-              style={{
-                padding: "24px 28px",
-                borderBottom: "1px solid #f1f5f9",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <ValidationVsTestAnalysis submissions={submissions} />
+        </div>
+
+        <div className="flex flex-col gap-5 lg:col-span-4">
+          <div className="flex h-full flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <div>
+              <div className="flex items-center justify-between border-b border-zinc-100 pb-3 dark:border-zinc-800">
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                    3 Model Terbaik Teratas
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    Berdasarkan skor Macro F1
+                  </p>
+                </div>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                  Top Rank
+                </span>
+              </div>
+
+              {topThree.length === 0 ? (
+                <div className="py-12 text-center text-xs text-zinc-400">
+                  Belum ada model tersimpan. Unggah model pertama Anda.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {topThree.map((sub, idx) => (
+                    <div
+                      key={sub.id}
+                      className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50/70 p-3.5 transition-colors dark:border-zinc-800/80 dark:bg-zinc-950/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 font-mono text-xs font-bold text-white">
+                          #{idx + 1}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-zinc-900 dark:text-white">
+                            {sub.name}
+                          </div>
+                          <div className="text-[11px] text-zinc-500">
+                            {sub.modelName} &bull;{" "}
+                            <strong className="text-zinc-700 dark:text-zinc-300">
+                              {sub.leaderboardName}
+                            </strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="font-mono text-sm font-black text-blue-600 dark:text-blue-400">
+                          {(sub.testMacroF1 * 100).toFixed(2)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
               <div>
-                <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f1b35" }}>
-                  Daftar Peringkat Model
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                  Daftar Peringkat Model Terkini
                 </h3>
-                <p style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                  Diurutkan berdasarkan skor pengujian tertinggi
+                <p className="text-xs text-zinc-500">
+                  5 model terbaru yang dievaluasi sistem
                 </p>
               </div>
               <Link
                 href="/leaderboard"
-                style={{
-                  fontSize: "12.5px",
-                  fontWeight: 700,
-                  color: "#2563eb",
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}
+                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
               >
-                <span>Lihat Leaderboard Lengkap</span>
-                <ArrowUpRight style={{ width: "15px", height: "15px" }} />
+                <span>Lihat Semua</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table className="nk-table">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs">
                 <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Nama Submission</th>
-                    <th>Peneliti</th>
-                    <th>Arsitektur Model</th>
-                    <th style={{ textAlign: "right" }}>Val F1</th>
-                    <th style={{ textAlign: "right" }}>Test F1</th>
-                    <th style={{ textAlign: "right" }}>Gen. Gap</th>
+                  <tr className="border-b border-zinc-100 bg-zinc-50 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+                    <th className="p-3.5">Rank</th>
+                    <th className="p-3.5">Nama Submission</th>
+                    <th className="p-3.5">Peneliti</th>
+                    <th className="p-3.5">Arsitektur</th>
+                    <th className="p-3.5 text-right">Val F1</th>
+                    <th className="p-3.5 text-right">Test F1</th>
+                    <th className="p-3.5 text-right">Gen. Gap</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {topFive.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "48px", color: "#94a3b8" }}>
-                        Belum ada submission tersimpan. Silakan unggah model baru.
+                      <td
+                        colSpan={7}
+                        className="py-12 text-center text-zinc-400"
+                      >
+                        Belum ada submission tercatat.
                       </td>
                     </tr>
                   ) : (
                     topFive.map((sub, idx) => {
                       const gapColor =
                         sub.generalizationGap >= 0
-                          ? "#059669"
+                          ? "text-emerald-600 dark:text-emerald-400"
                           : sub.generalizationGap >= -0.03
-                          ? "#d97706"
-                          : "#ef4444";
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-red-600 dark:text-red-400";
+
                       return (
-                        <tr key={sub.id}>
-                          <td style={{ fontWeight: 800, color: "#64748b" }}>#{idx + 1}</td>
-                          <td>
-                            <div style={{ fontWeight: 800, color: "#1e293b" }}>{sub.name}</div>
+                        <tr
+                          key={sub.id}
+                          className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                        >
+                          <td className="p-3.5 font-bold text-zinc-400">
+                            #{idx + 1}
+                          </td>
+                          <td className="p-3.5 font-bold text-zinc-900 dark:text-white">
+                            {sub.name}
                             {sub.isOfficial && (
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  marginTop: "3px",
-                                  fontSize: "9.5px",
-                                  fontWeight: 800,
-                                  background: "#EFF6FF",
-                                  color: "#2563eb",
-                                  padding: "2px 8px",
-                                  borderRadius: "9999px",
-                                }}
-                              >
-                                OFFICIAL SLOT #{sub.officialSlot || 1}
+                              <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                Official Slot #{sub.officialSlot || 1}
                               </span>
                             )}
                           </td>
-                          <td style={{ fontWeight: 600, color: "#475569" }}>
+                          <td className="p-3.5 font-medium text-zinc-600 dark:text-zinc-300">
                             {sub.leaderboardName}
                           </td>
-                          <td style={{ color: "#64748b" }}>{sub.modelName}</td>
-                          <td style={{ textAlign: "right", fontFamily: "monospace", color: "#64748b" }}>
+                          <td className="p-3.5 text-zinc-500 dark:text-zinc-400">
+                            {sub.modelName}
+                          </td>
+                          <td className="p-3.5 text-right font-mono text-zinc-500">
                             {(sub.validationMacroF1 * 100).toFixed(2)}%
                           </td>
-                          <td
-                            style={{
-                              textAlign: "right",
-                              fontFamily: "monospace",
-                              fontWeight: 900,
-                              color: "#059669",
-                            }}
-                          >
+                          <td className="p-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
                             {(sub.testMacroF1 * 100).toFixed(2)}%
                           </td>
-                          <td style={{ textAlign: "right" }}>
-                            <span
-                              style={{
-                                display: "inline-block",
-                                padding: "4px 10px",
-                                borderRadius: "9999px",
-                                fontSize: "11px",
-                                fontWeight: 800,
-                                fontFamily: "monospace",
-                                background: gapColor + "15",
-                                color: gapColor,
-                              }}
-                            >
-                              {sub.generalizationGap > 0 ? "+" : ""}
-                              {(sub.generalizationGap * 100).toFixed(2)}%
-                            </span>
+                          <td
+                            className={`p-3.5 text-right font-mono font-bold ${gapColor}`}
+                          >
+                            {sub.generalizationGap > 0 ? "+" : ""}
+                            {(sub.generalizationGap * 100).toFixed(2)}%
                           </td>
                         </tr>
                       );
@@ -529,56 +301,30 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Activity & Quick Launch Feed */}
-        <div style={{ gridColumn: "span 12 / span 12" }} className="xl:col-span-4">
-          <div
-            className="nk-card"
-            style={{
-              padding: "26px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-              height: "100%",
-            }}
-          >
-            <div>
-              <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#0f1b35" }}>
-                Aktivitas &amp; Log Terakhir
-              </h3>
-              <p style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                Riwayat pembaruan sistem dan dataset
-              </p>
-            </div>
+        <div className="lg:col-span-4">
+          <div className="h-full rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+              Log Aktivitas Terakhir
+            </h3>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Riwayat perubahan sistem dan dataset
+            </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div className="mt-4 space-y-3">
               {activityLogs.slice(0, 4).map((log) => (
                 <div
                   key={log.id}
-                  style={{
-                    background: "#f8fafc",
-                    borderRadius: "16px",
-                    padding: "14px 16px",
-                    border: "1px solid rgba(226, 232, 240, 0.7)",
-                  }}
+                  className="rounded-xl border border-zinc-100 bg-zinc-50/70 p-3.5 dark:border-zinc-800/80 dark:bg-zinc-950/40"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span style={{ fontSize: "12px", fontWeight: 800, color: "#0f1b35" }}>
-                      {log.title}
-                    </span>
-                    <span style={{ fontSize: "10.5px", color: "#94a3b8", fontFamily: "monospace" }}>
+                  <div className="flex items-center justify-between text-xs font-bold text-zinc-900 dark:text-white">
+                    <span>{log.title}</span>
+                    <span className="font-mono text-[10px] font-normal text-zinc-400">
                       {log.timestampWIB}
                     </span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#475569", lineHeight: 1.5 }}>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                     {log.description}
-                  </div>
+                  </p>
                 </div>
               ))}
             </div>
